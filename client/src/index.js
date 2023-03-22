@@ -158,6 +158,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("In DOMContentLoaded");
   const latest = window.theLatest = new RemoteObject("games/thelatest");
   latest.on("value", (val) => {
+    document.getElementById("datalabel").textContent = latest.path;
+    document.getElementById("datainput").textContent = JSON.stringify({
+      displayName: val.displayName
+    }, null, 2);
     console.log(`Got value from ${latest.path}: ${JSON.stringify(val)}`);
   });
 });
+
+const putData = window.putData = async function(value) {
+  const model = window.theLatest;
+  const url = `/api/${model.path}`;
+  let data;
+  try {
+    data = JSON.parse(value);
+  } catch (ex) {
+    console.warn("Bad data format, it should be valid JSON", ex);
+    return;
+  }
+  console.log(`Sending request to update: ${url} with: ${value}`);
+  let resp = await fetch(url, {
+    method: "PUT",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  if (resp.ok) {
+    console.log("Got ok response:", await resp.text());
+    // displayResult(await resp.json());
+  } else {
+    console.warn("error response:", resp);
+  }
+}

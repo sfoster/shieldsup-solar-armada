@@ -5,6 +5,11 @@
     <h1>Firebase</h1>
     <games-list id="games-list" data-remote-id="games"></games-list>
     <doc-list id="users-list" data-remote-id="users"></doc-list>
-
+    <hr/>
+    <section>
+      <h4 id="datalabel"></h4>
+      <textarea id="datainput" style="width:80%; height: 10rem"></textarea>
+      <p><button onclick="putData(document.getElementById('datainput').value)">PUT data</button></p>
+    </section>
   </body>
 </html>
