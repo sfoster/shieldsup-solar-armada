@@ -1,0 +1,21 @@
+{
+  "name": "api-test-client",
+  "version": "1.0.0",
+  "description": "Test client for firebase-based API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --mode=development",
+    "watch": "webpack --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^9.18.0",
+    "lit": "^2.7.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.76.2",
+    "webpack-cli": "^5.0.1"
+  }
+}

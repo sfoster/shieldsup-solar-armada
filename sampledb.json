@@ -1,0 +1,29 @@
+{
+  "users": {
+    "rita": {
+      "displayName": "Our Rita"
+    },
+    "sue": {
+      "displayName": "Sue-love"
+    },
+    "bob": {
+      "displayName": "Bob too"
+    }
+  },
+  "games": {
+    "thelatest": {
+      "displayName": "Default Latest Game",
+      "players": {
+        "rita": true,
+        "bob": true
+      }
+    },
+    "yesterdays": {
+      "displayName": "Yesterday's Game",
+      "players": {
+        "sue": true,
+        "bob": true
+      }
+    }
+  }
+}
