@@ -13,7 +13,7 @@ let firebaseEmulators;
 if (inEmulation) {
   firebaseConfig = {
     apiKey: "fake-api-key",
-    projectId: "fightertest",
+    projectId: "demo-shieldsup-api-test",
   }
   console.log("inEmulation, firebaseConfig:", firebaseConfig);
   firebaseEmulators = {

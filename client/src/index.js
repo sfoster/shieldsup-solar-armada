@@ -1,8 +1,7 @@
 // src/index.js
-import { animate } from './animations';
-import { DataList } from './datalist';
+import { useClient, useDatabase, RemoteObject, RemoteList } from './collections';
 import { EventEmitterMixin } from './event-emitter';
-import {LitElement, html} from 'lit';
+import { DocumentItem, DocumentsList, GamesList } from './elements';
 
 import {
   firebaseConfig,
@@ -12,178 +11,137 @@ import {
 
 import { initializeApp } from 'firebase/app';
 import { getDatabase, connectDatabaseEmulator, ref, child, onValue, get } from 'firebase/database';
-const firebaseApp = initializeApp({
-  projectId: "api-test",
-});
+import { getAuth, signOut, signInAnonymously, signInWithEmailAndPassword, connectAuthEmulator, onAuthStateChanged } from "firebase/auth";
+
+customElements.define("doc-item", DocumentItem);
+customElements.define("doc-list", DocumentsList);
+customElements.define("games-list", GamesList);
+
+const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp, "http://localhost:9000/?ns=shieldsup-api-test");
+useDatabase(db);
+
 if (inEmulation) {
   // Point to the RTDB emulator running on localhost.
   console.log("Connecting database emulator", firebaseEmulators.database.host, firebaseEmulators.database.port);
   connectDatabaseEmulator(db, firebaseEmulators.database.host, firebaseEmulators.database.port);
 }
 
-class RemoteObject extends EventEmitterMixin(Object) {
-  constructor(path) {
-    super();
-    this._path = path;
-    Object.defineProperty(this, 'dbRef', {
-      value: ref(db, this.path),
-      writable: false
-    });
-  }
-  get path() {
-    return this._path;
-  }
-  on(...args) {
-    if (!this._watched) {
-      this.watch();
+function connectClient() {
+  console.log("in connectClient");
+  class _Client extends EventEmitterMixin(Object) {
+    connected = false;
+    init() {
+      console.log("in _Client.init");
+      this.auth = getAuth(firebaseApp);
+      connectAuthEmulator(this.auth, "http://localhost:9099");
+      onAuthStateChanged(this.auth, (user) => {
+        console.log("onAuthStateChanged:", user);
+        if (user) {
+          this.connected = true;
+          this.emit("signedin", user);
+        } else {
+          this.connected = false;
+          this.emit("signedout");
+        }
+      });
     }
-    return super.on(...args);
-  }
-  watch() {
-    if (this._watched) {
-      return;
+    logout() {
+      return signOut(this.auth);
     }
-    onValue(this.dbRef, (snapshot) => {
-      this.onSnapshot(snapshot);
-    });
-    this._watched = true;
-  }
-  onSnapshot(snapshot) {
-    const result = snapshot.val();
-    console.log("emitting on 'value':", result);
-    this.emit("value", result);
-    // snapshot.forEach((childSnapshot) => {
-    //   results.push({ key: childSnapshot.key, value: childSnapshot.val()});
-    // });
-  }
-};
-
-function loadGame(name) {
-
-  // const gameId = "thelatest";
-  // return get(child(dbRef, `games/${gameId}`)).then((snapshot) => {
-  //   if (snapshot.exists()) {
-  //     console.log("snap exists");
-  //     return snapshot.val();
-  //   } else {
-  //     console.log("snap doesnt exist");
-  //     return new Error("No data available");
-  //   }
-  // });
-}
-class RemoteList extends RemoteObject {
-  onSnapshot(snapshot) {
-    const results = [];
-    snapshot.forEach((childSnapshot) => {
-      results.push({ key: childSnapshot.key, value: childSnapshot.val()});
-    });
-    this.emit("value", results);
-  }
-}
-
-class DocumentsList extends LitElement {
-  constructor() {
-    super();
-    this._viewDataList = [];
-  }
-  static properties = {
-    remotePath: {},
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    const remoteId = this.dataset.remoteId;
-    console.log("connectedCallback, building model with remoteId", remoteId);
-    if (remoteId) {
-      this.model = new RemoteList(remoteId);
-      this.model.on("value", this);
+    login(userid, password) {
+      console.log("login, with:", userid, password);
+      if (!userid) {
+        console.log("in login, calling signInAnonymously");
+        signInAnonymously(this.auth).catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          client.emit("error", { errorCode, errorMessage });
+        });
+      } else {
+        console.log("in login, calling signInWithEmailAndPassword");
+        signInWithEmailAndPassword(this.auth, userid, password).then(result => {
+          console.log("Success from signInWithEmailAndPassword:", result);
+        }).catch(error => {
+          console.warn("error from signInWithEmailAndPassword", error);
+        });
+      }
     }
-  }
-  prepareViewData(results) {
-    this._viewDataList = results.map(({ key, value: docData }) => docData);
-  }
-  handleTopic(topic, results) {
-    console.log("Got update to my list:", results);
-    this.prepareViewData(results);
-    this.requestUpdate();
-  }
-  itemTemplate(data) {
-    return html`<li>${JSON.stringify(data)}</li>`;
-  }
-  render() {
-    return html `
-    <ul>
-      ${this._viewDataList.map((data) =>
-        this.itemTemplate(data)
-      )}
-    </ul>`;
-  }
+  };
+  const client = new _Client();
+  client.init();
+  useClient(client);
+  return client;
 }
-customElements.define("doc-list", DocumentsList);
-class GamesList extends DocumentsList {
-  prepareViewData(results) {
-    this._viewDataList = results.map(({ key, value: docData }) => {
-      console.log("creating view-model from:", docData);
-      return {
-        displayName: docData.displayName,
-        playerCount: Object.keys(docData.players).length,
-      };
-    });
-  }
-  itemTemplate(data) {
-    return html`<li>${data.displayName} (${data.playerCount})</li>`
-  }
-}
-customElements.define("games-list", GamesList);
 
-class DocumentItem extends HTMLElement {
-  constructor(model) {
-    super();
-    this.model = model;
-  }
-  handleTopic(topic, data) {
-    this.update();
-    this.render();
-  }
-  update(data) {
-    this._viewData = data;
-  }
-  render() {
-    this.textContent = JSON.stringify(this._viewData, null, 2);
-  }
+function updateUI({ loggedIn } = {}) {
+  const remoteBackedElements = document.querySelectorAll("[data-remoteid]");
+  console.log("remoteBackedElements:", remoteBackedElements.length);
+  remoteBackedElements.forEach(elem => {
+    switch (elem.dataType) {
+      case "item":
+        elem.disabled = !loggedIn;
+        console.log("CE item type with remoteid", elem.dataset.remoteid);
+        break;
+      case "list": {
+        elem.disabled = !loggedIn;
+        if (loggedIn) {
+          if (!elem.collection) {
+            const collection = window[elem.id + "-model"] = new RemoteList(elem.dataset.remoteid);
+            elem.setCollection(collection);
+          }
+        }
+        break;
+      }
+      default:
+        console.log("Unknown element with [remoteid]", elem);
+        break;
+    }
+  });
 }
-customElements.define("doc-item", DocumentItem);
 
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("In DOMContentLoaded");
-  const latest = window.theLatest = new RemoteObject("games/thelatest");
-  latest.on("value", (val) => {
-    document.getElementById("datalabel").textContent = latest.path;
-    document.getElementById("datainput").textContent = JSON.stringify({
-      displayName: val.displayName
-    }, null, 2);
-    console.log(`Got value from ${latest.path}: ${JSON.stringify(val)}`);
+  const client = window.gameClient = connectClient();
+  client.on("signedin", (user) => {
+    console.log("Client signedin, got user:", user);
+    const latest = window.theLatest = new RemoteObject("games/thelatest");
+    latest.on("value", (val) => {
+      document.getElementById("datalabel").textContent = latest.path;
+      document.getElementById("datainput").textContent = JSON.stringify({
+        displayName: val.displayName
+      }, null, 2);
+      console.log(`Got value from ${latest.path}: ${JSON.stringify(val)}`);
+    });
+    updateUI({ loggedIn: true });
+  });
+  client.on("signedout", () => {
+    updateUI({ loggedIn: false });
   });
 });
 
-const putData = window.putData = async function(value) {
-  const model = window.theLatest;
-  const url = `/api/${model.path}`;
+function updateModel(model, payload) {
   let data;
   try {
-    data = JSON.parse(value);
+    data = JSON.parse(payload);
   } catch (ex) {
     console.warn("Bad data format, it should be valid JSON", ex);
     return;
   }
-  console.log(`Sending request to update: ${url} with: ${value}`);
+  // const model = window.theLatest;
+  const url = `/api/${model.path}`;
+  return apiRequest(url, "PUT", data);
+}
+
+const apiRequest = window.apiRequest = async function(path, method, bodyData) {
+  console.log(`Sending request to update: ${url} with: ${payload}`);
   let resp = await fetch(url, {
-    method: "PUT",
+    method,
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify(bodyData)
   });
   if (resp.ok) {
     console.log("Got ok response:", await resp.text());

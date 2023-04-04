@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+// const { getAuth } = require("firebase-admin/auth");
 const firebaseProjectConfig = functions.config().firebase;
 
 const express = require('express');
@@ -10,8 +11,10 @@ admin.initializeApp({
   // The database URL depends on the location of the database
   databaseURL: "http://localhost:9000/?ns=shieldsup-api-test"
 });
-// admin.initializeApp(firebaseProjectConfig);
 const db = admin.database();
+// const firebaseAuth = getAuth();
+const app = express();
+// const authMiddleWare = require("firebase-auth-express-middleware");
 
 function getCollection(path) {
   const ref = db.ref(path);
@@ -31,22 +34,43 @@ function updateDocument(path, newData) {
   }));
 }
 
-const app = express();
+let authorized = false;
+function checkAuth(req, res, next) {
+  if (authorized) {
+    next();
+  } else {
+    res.status(403).json({ "status": "unauthorized"});
+    return;
+  }
+}
+
 app.use(express.json());
+// require all API requests to be auth'd.
+app.use('/api', checkAuth);
 
 // respond with list of all entities and assets when a GET request is made to the homepage
-app.get('/api/', async (req, resp) => {
-  const payload = {};
-  for (let collName of ['games', 'users']) {
-    const results = await getCollection(collName);
-    payload[collName] = results;
-  }
-  resp.json(payload);
+app.get('/api', (req, resp) => {
+  resp.json({ "status": "ok "});
 });
 
-app.get('/api/hello', async (req, resp) => {
-  resp.json({ message: "Hi"});
-});
+app.get(
+  "/api/hello",
+  async (req, resp) => {
+    resp.json({ message: "Hi"});
+  }
+);
+
+app.get(
+  "/api/games/:id",
+  async (req, resp) => {
+    const payload = {};
+    for (let collName of ['games', 'users']) {
+      const results = await getCollection(collName);
+      payload[collName] = results;
+    }
+    resp.json(payload);
+  }
+);
 
 app.put("/api/games/:id", async (req, resp) => {
   console.log("Update game: ", req.params.id, req.body);

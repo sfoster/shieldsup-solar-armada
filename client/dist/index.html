@@ -1,15 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="StyleSheet" href="./style.css">
+  </head>
   <body>
     <script type="module" src="./bundle.js"></script>
     <h1>Firebase</h1>
-    <games-list id="games-list" data-remote-id="games"></games-list>
-    <doc-list id="users-list" data-remote-id="users"></doc-list>
+    <p>
+      <button onclick="gameClient.login('test@example.com', 'testy1')">Login</button>
+      <button onclick="gameClient.login()">Login Anon</button>
+      <button onclick="gameClient.logout()">Logout</button>
+    </p>
+    <games-list id="games-list" data-remoteid="games"></games-list>
+    <doc-list id="users-list" data-remoteid="users"></doc-list>
     <hr/>
-    <section>
+    <section hidden="">
       <h4 id="datalabel"></h4>
       <textarea id="datainput" style="width:80%; height: 10rem"></textarea>
-      <p><button onclick="putData(document.getElementById('datainput').value)">PUT data</button></p>
+      <p><button onclick="apiRequest(document.getElementById('datainput').value)">PUT data</button></p>
     </section>
   </body>
 </html>
