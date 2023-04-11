@@ -56,12 +56,27 @@ function checkAuth(req, resp, next) {
       })
       .catch(error => {
         console.warn("error verifying token:", error);
-        resp.status(403).json({ "status": "unauthorized"});
+        resp.status(403).json({ "status": "unauthorized" });
       });
       return;
     }
   }
-  res.status(403).json({ "status": "unauthorized"});
+  res.status(403).json({ "status": "unauthorized" });
+}
+
+function checkProposedChange(req, resp, next) {
+  let changeOk = true;
+  console.log("checkProposedChange:", req.body);
+  const docData = req.body.data;
+  if (docData && docData.displayName) {
+    // some bogus check on the new document data
+    changeOk = !docData.displayName.toLowerCase().includes("rudeword");
+  }
+  if (changeOk) {
+    next();
+  } else {
+    resp.status(400).json({ "status": "denied" });
+  }
 }
 
 app.use(express.json());
@@ -70,13 +85,13 @@ app.use('/api', checkAuth);
 
 // respond with list of all entities and assets when a GET request is made to the homepage
 app.get('/api', (req, resp) => {
-  resp.json({ "status": "ok "});
+  resp.json({ "status": "ok " });
 });
 
 app.get(
   "/api/hello",
   async (req, resp) => {
-    resp.json({ message: "Hi"});
+    resp.json({ message: "Hi" });
   }
 );
 
@@ -92,7 +107,8 @@ app.get(
   }
 );
 
-app.put("/api/games/:id", async (req, resp) => {
+// check any update against some game logic
+app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
   if (resp.headersSent) {
     return;
   }

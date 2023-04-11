@@ -26593,6 +26593,109 @@ function EventEmitterMixin(base) {
 
 /***/ }),
 
+/***/ "./src/game-client.js":
+/*!****************************!*\
+  !*** ./src/game-client.js ***!
+  \****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "GameClient": () => (/* binding */ GameClient)
+/* harmony export */ });
+/* harmony import */ var firebase_auth__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/auth */ "./node_modules/firebase/auth/dist/esm/index.esm.js");
+/* harmony import */ var _event_emitter__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./event-emitter */ "./src/event-emitter.js");
+
+
+class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmitterMixin)(Object) {
+  connected = false;
+  init(firebaseApp) {
+    console.log("in _Client.init");
+    this.auth = (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getAuth)(firebaseApp);
+    (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.connectAuthEmulator)(this.auth, "http://localhost:9099");
+    (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onAuthStateChanged)(this.auth, (user) => {
+      console.log("onAuthStateChanged:", user);
+      if (user) {
+        this.onUserAuthenticated(user);
+      } else {
+        this.onUserLogout();
+      }
+    });
+  }
+  async onUserAuthenticated(user) {
+    console.assert(this.auth.currentUser == user, "user arg is auth's currentUser");
+    this.currentUserIdToken = await user.getIdToken();
+    this.currentUser = user;
+    this.connected = true;
+    this.emit("signedin", { user: this.currentUser, idToken: this.currentUserIdToken });
+  }
+  onUserLogout() {
+    this.connected = false;
+    delete this.currentUser;
+    delete this.currentUserIdToken;
+    this.emit("signedout");
+  }
+  logout() {
+    return (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signOut)(this.auth);
+  }
+  login(userid, password) {
+    console.log("login, with:", userid, password);
+    if (!userid) {
+      console.log("in login, calling signInAnonymously");
+      (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInAnonymously)(this.auth).catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        client.emit("error", { errorCode, errorMessage });
+      });
+    } else {
+      console.log("in login, calling signInWithEmailAndPassword");
+      (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithEmailAndPassword)(this.auth, userid, password).then(result => {
+        console.log("Success from signInWithEmailAndPassword:", result);
+      }).catch(error => {
+        console.warn("error from signInWithEmailAndPassword", error);
+      });
+    }
+  }
+  updateEntity(path, data) {
+    if (!(this.connected && this.currentUser)) {
+      console.info("User not logged in and/or client not connected");
+      return;
+    }
+    const url = `/api/${path}`;
+    return this._apiRequest(url, "PUT", data);
+  }
+  async _apiRequest(url, method, payload) {
+    console.log(`Sending request to update: ${url} with: ${JSON.toString(payload)}`);
+    let resp = await fetch(url, {
+      method,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      // TODO: Use Authorization header or add the token into this request envelope?
+      body: JSON.stringify({
+        data: payload,
+        credential: `token=${this.currentUserIdToken}`,
+      })
+    });
+    let result;
+    try {
+      result = await resp.json();
+    } catch (ex) {
+      result = { status: resp.statusText }
+    }
+    if (resp.ok) {
+      this.emit("request/success", result);
+    } else {
+      this.emit("request/failure", result);
+      console.warn("error response:", resp);
+    }
+  }
+};
+
+
+/***/ }),
+
 /***/ "./node_modules/@firebase/app/dist/esm/index.esm2017.js":
 /*!**************************************************************!*\
   !*** ./node_modules/@firebase/app/dist/esm/index.esm2017.js ***!
@@ -31907,14 +32010,12 @@ var __webpack_exports__ = {};
   \**********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _collections__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./collections */ "./src/collections.js");
-/* harmony import */ var _event_emitter__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./event-emitter */ "./src/event-emitter.js");
+/* harmony import */ var _game_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./game-client */ "./src/game-client.js");
 /* harmony import */ var _elements__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./elements */ "./src/elements.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./config */ "./src/config.js");
 /* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
 /* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
-/* harmony import */ var firebase_auth__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! firebase/auth */ "./node_modules/firebase/auth/dist/esm/index.esm.js");
 // src/index.js
-
 
 
 
@@ -31940,87 +32041,8 @@ if (_config__WEBPACK_IMPORTED_MODULE_3__.inEmulation) {
 
 function connectClient() {
   console.log("in connectClient");
-  class _Client extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmitterMixin)(Object) {
-    connected = false;
-    init() {
-      console.log("in _Client.init");
-      this.auth = (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.getAuth)(firebaseApp);
-      (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.connectAuthEmulator)(this.auth, "http://localhost:9099");
-      (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.onAuthStateChanged)(this.auth, (user) => {
-        console.log("onAuthStateChanged:", user);
-        if (user) {
-          this.onUserAuthenticated(user);
-        } else {
-          this.onUserLogout();
-        }
-      });
-    }
-    async onUserAuthenticated(user) {
-      console.assert(this.auth.currentUser == user, "user arg is auth's currentUser");
-      this.currentUserIdToken = await user.getIdToken();
-      this.currentUser = user;
-      this.connected = true;
-      this.emit("signedin", { user: this.currentUser, idToken: this.currentUserIdToken });
-    }
-    onUserLogout() {
-      this.connected = false;
-      delete this.currentUser;
-      delete this.currentUserIdToken;
-      this.emit("signedout");
-    }
-    logout() {
-      return (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.signOut)(this.auth);
-    }
-    login(userid, password) {
-      console.log("login, with:", userid, password);
-      if (!userid) {
-        console.log("in login, calling signInAnonymously");
-        (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.signInAnonymously)(this.auth).catch((error) => {
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          client.emit("error", { errorCode, errorMessage });
-        });
-      } else {
-        console.log("in login, calling signInWithEmailAndPassword");
-        (0,firebase_auth__WEBPACK_IMPORTED_MODULE_6__.signInWithEmailAndPassword)(this.auth, userid, password).then(result => {
-          console.log("Success from signInWithEmailAndPassword:", result);
-        }).catch(error => {
-          console.warn("error from signInWithEmailAndPassword", error);
-        });
-      }
-    }
-    updateEntity(path, data) {
-      if (!(this.connected && this.currentUser)) {
-        console.info("User not logged in and/or client not connected");
-        return;
-      }
-      const url = `/api/${path}`;
-      return this._apiRequest(url, "PUT", data);
-    }
-    async _apiRequest(url, method, payload) {
-      console.log(`Sending request to update: ${url} with: ${JSON.toString(payload)}`);
-      let resp = await fetch(url, {
-        method,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        // TODO: Use Authorization header or add the token into this request envelope?
-        body: JSON.stringify({
-          data: payload,
-          credential: `token=${this.currentUserIdToken}`,
-        })
-      });
-      if (resp.ok) {
-        console.log("Got ok response:", await resp.text());
-        // displayResult(await resp.json());
-      } else {
-        console.warn("error response:", resp);
-      }
-    }
-  };
-  const client = new _Client();
-  client.init();
+  const client = new _game_client__WEBPACK_IMPORTED_MODULE_1__.GameClient();
+  client.init(firebaseApp);
   (0,_collections__WEBPACK_IMPORTED_MODULE_0__.useClient)(client);
   return client;
 }
@@ -32033,6 +32055,12 @@ const UI = window.UI = new class _FormUI {
     console.log("Init UI with rootElem:", rootElem);
     this.rootElem = rootElem;
     this.rootElem.addEventListener("click", this);
+    window.gameClient.on("request/success", (result) => {
+      this.displayStatus(result.status);
+    });
+    window.gameClient.on("request/failure", (result) => {
+      this.displayStatus(result.status);
+    });
   }
   update({ loggedIn } = {}) {
     const remoteBackedElements = document.querySelectorAll("[data-remoteid]");
@@ -32079,6 +32107,11 @@ const UI = window.UI = new class _FormUI {
         }
       }
     }
+  }
+  displayStatus(statusValue) {
+    const item = document.createElement("li");
+    item.textContent = statusValue;
+    this.rootElem.querySelector("#status").appendChild(item);
   }
 }();
 
