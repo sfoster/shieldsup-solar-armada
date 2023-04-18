@@ -41,6 +41,7 @@ const UI = window.UI = new class _FormUI {
   init(rootElem) {
     console.log("Init UI with rootElem:", rootElem);
     this.rootElem = rootElem;
+    this.form = rootElem.querySelector("form");
     this.rootElem.addEventListener("click", this);
     window.gameClient.on("request/success", (result) => {
       this.displayStatus(result.status);
@@ -74,25 +75,46 @@ const UI = window.UI = new class _FormUI {
       }
     });
   }
-  handleEvent(event) {
-    if (event.type == "click") {
-      switch (event.target) {
-        case this.gameUpdateBtn: {
-          console.log("Handling click on gameUpdateBtn");
-          const pathId = document.getElementById('datalabel').textContent.trim();
-          let data;
-          try {
-            data = JSON.parse(document.getElementById('datainput').value);
-          } catch (ex) {
-            console.warn("Bad data format, it should be valid JSON", ex);
-            return;
-          }
-          window.gameClient.updateEntity(
-            pathId, data
-          );
-          break;
-        }
+  handleButtonClick(event) {
+    let action = event.target.dataset.action;
+    event.preventDefault();
+    if (action == "api-request") {
+      const overrideUrl = this.form.elements["override-url"].value;
+      if (overrideUrl) {
+        window.gameClient.overrideUrl = overrideUrl;
+      } else {
+        delete window.gameClient.overrideUrl;
       }
+    }
+    switch (event.target.id) {
+      case "loginBtn":
+        window.gameClient.login("test@example.com", "testy1");
+        break;
+      case "anonLoginBtn":
+        window.gameClient.login();
+        break;
+      case "logoutBtn":
+        window.gameClient.logout();
+        break;
+      case "gameUpdateBtn": {
+        const pathId = document.getElementById('datalabel').textContent.trim();
+        let data;
+        try {
+          data = JSON.parse(document.getElementById('datainput').value);
+        } catch (ex) {
+          console.warn("Bad data format, it should be valid JSON", ex);
+          return;
+        }
+        window.gameClient.updateEntity(
+          pathId, data
+        );
+        break;
+      }
+    }
+  }
+  handleEvent(event) {
+    if (event.type == "click" && event.target.localName =="button") {
+      this.handleButtonClick(event);
     }
   }
   displayStatus(statusValue) {

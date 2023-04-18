@@ -1,20 +1,23 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { getAuth } = require("firebase-admin/auth");
-const firebaseProjectConfig = functions.config().firebase;
+let inEmulation = process.env.FUNCTIONS_EMULATOR && process.env.FUNCTIONS_EMULATOR == "true";
+const serviceAccount = require("../.secrets/api-project-482814424574-de59b6e3ffb8.json");
+const firebaseProjectConfig = Object.assign(
+  {
+    projectId: "demo-shieldsup-api-test",
+    credential: admin.credential.cert(serviceAccount),
+    // The database URL depends on the location of the database
+    databaseURL: "http://localhost:9000/?ns=shieldsup-api-test"
+  },
+  functions.config().firebase
+);
 
 const express = require('express');
-const serviceAccount = require("../.secrets/api-project-482814424574-de59b6e3ffb8.json");
 // Initialize the app with a service account, granting admin privileges
-admin.initializeApp({
-  projectId: "demo-shieldsup-api-test",
-  credential: admin.credential.cert(serviceAccount),
-  // The database URL depends on the location of the database
-  databaseURL: "http://localhost:9000/?ns=shieldsup-api-test"
-});
+admin.initializeApp(firebaseProjectConfig);
 const db = admin.database();
 const app = express();
-// const authMiddleWare = require("firebase-auth-express-middleware");
 
 function getCollection(path) {
   const ref = db.ref(path);
@@ -27,6 +30,7 @@ function getCollection(path) {
 }
 
 function updateDocument(path, newData) {
+  console.log("updateDocument, inEmulation:", inEmulation, typeof inEmulation);
   console.log("updateDocument, got path:", path, newData);
 
   const ref = db.ref(path);
@@ -56,7 +60,7 @@ function checkAuth(req, resp, next) {
       })
       .catch(error => {
         console.warn("error verifying token:", error);
-        resp.status(403).json({ "status": "unauthorized" });
+        resp.status(401).json({ "status": "token-revoked" });
       });
       return;
     }
@@ -75,7 +79,7 @@ function checkProposedChange(req, resp, next) {
   if (changeOk) {
     next();
   } else {
-    resp.status(400).json({ "status": "denied" });
+    resp.status(403).json({ "status": "denied" });
   }
 }
 
@@ -106,6 +110,20 @@ app.get(
     resp.json(payload);
   }
 );
+
+app.all(
+  ["/api/unauthorized", "/api/unauthorized/*"],
+  async (req, resp) => {
+    resp.status(401).json({ "status": "unauthorized" });
+  }
+)
+
+app.all(
+  ["/api/forbidden", "/api/forbidden/*"],
+  async (req, resp) => {
+    resp.status(403).json({ "status": "denied" });
+  }
+)
 
 // check any update against some game logic
 app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
