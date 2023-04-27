@@ -26728,6 +26728,282 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
 
 /***/ }),
 
+/***/ "./src/ui-app.js":
+/*!***********************!*\
+  !*** ./src/ui-app.js ***!
+  \***********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "UIApp": () => (/* binding */ UIApp)
+/* harmony export */ });
+class UIApp {
+  constructor(elem, options = {}) {
+    this.elem = elem || document.body;
+    this.options = options;
+    this.scenes = {};
+    this.currentScene = null;
+    this.messageElem = null;
+  }
+  get messageList() {
+    return this.elem.querySelector("#messages")
+  }
+  registerScene(name, scene) {
+    this.scenes[name] = scene;
+    console.log("registered scene:", name, scene);
+  }
+  switchScene(name, sceneParams = {}) {
+    if (!this.scenes[name]) {
+      throw new Error("Cant switch to unknown scene: " + name);
+    }
+
+    if (this.previousScene) {
+      this.previousScene.classList.remove("previous");
+      this.previousScene = null;
+    }
+    if (this.currentScene) {
+      if (this.currentScene.id.startsWith("waiting")) {
+        this.previousScene = this.currentScene;
+      }
+      this.currentScene.classList.remove("current");
+      this.currentScene.exit();
+    }
+    if (this.previousScene) {
+      this.previousScene.classList.add("previous");
+    }
+    this.currentScene = this.scenes[name];
+    this.currentScene.enter(sceneParams);
+  }
+  showNotification(message) {
+    console.log("Notification:", message);
+  }
+  showMessage(message) {
+    const line = document.createElement("li");
+    line.textContent = message;
+    this.messageList.appendChild(line);
+  }
+  requireLogin(statusData) {
+    console.log("requireLogin, got statusData:", statusData);
+  }
+}
+
+
+
+/***/ }),
+
+/***/ "./src/ui-scene.js":
+/*!*************************!*\
+  !*** ./src/ui-scene.js ***!
+  \*************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "GameScene": () => (/* binding */ GameScene),
+/* harmony export */   "InitializeScene": () => (/* binding */ InitializeScene),
+/* harmony export */   "LobbyScene": () => (/* binding */ LobbyScene),
+/* harmony export */   "UIScene": () => (/* binding */ UIScene),
+/* harmony export */   "defineCustomElements": () => (/* binding */ defineCustomElements)
+/* harmony export */ });
+const scenes = new Set();
+class UIScene extends HTMLElement {
+  configure(options={}) {
+    this.client = options.client;
+    delete options.client;
+    this.app = options.app;
+    delete options.app;
+    this.player = options.player;
+    delete options.player;
+
+    this.options = options;
+    this._topics = new Set();
+    this._active = false;
+    this._configured = true;
+  }
+  connectedCallback() {
+    this.classList.add("ui-scene", "hidden");
+  }
+  listen(name) {
+    if (this._topics.has(name)) {
+      return;
+    }
+    this._topics.add(name);
+    this.ownerDocument.addEventListener(name, this);
+  }
+  removeListener(name) {
+    this._topics.delete(name);
+    this.ownerDocument.removeEventListener(name, this);
+  }
+  enter(params = {}) {
+    this._active = true;
+    if (params.client) {
+      this.client = params.client;
+    }
+    if (params.game) {
+      this.app = params.game;
+    }
+    this.addEventListener("click", this);
+    this.classList.remove("hidden");
+    this.ownerDocument.body.dataset.scene = this.id;
+    console.log("Entering scene: ", this.id, this);
+  }
+  exit() {
+    this._active = false;
+    for (let topic of this._topics){
+      this.removeListener(topic);
+    }
+    this.classList.add("hidden");
+  }
+  handleEvent(event) {
+    let mname = 'on'+event.type[0].toUpperCase()+event.type.substring(1);
+    if (typeof this[mname] == 'function') {
+      this[mname].call(this, event);
+    }
+  }
+}
+
+/*
+ * Initial scene checks configurations, server availability etc.
+ * Forwards to Lobby scene if it all checks out
+ */
+class InitializeScene extends UIScene {
+  static name = "initialize-scene";
+  enter(params = {}) {
+    super.enter(params);
+    this.checkConditions().then(result => {
+      if (!result || !result.ok) {
+        return this.statusNotOk(result);
+      }
+      this.statusOk(result);
+    }).catch(ex =>{
+      console.warn("Exception entering scene: ", ex);
+      this.statusNotOk(ex);
+    })
+  }
+  checkConditions() {
+    return Promise.resolve({
+      ok: true,
+      user: null,
+    });
+  }
+  async statusOk(statusData) {
+    if (statusData.user) {
+      this.app.switchScene("lobby", statusData);
+    } else {
+      this.app.requireLogin(statusData);
+    }
+  }
+  statusNotOk(statusResult){
+    if (statusResult && statusResult instanceof Error) {
+      game.switchScene("notavailable", { heading: "Status Error", message: statusResult.message, });
+    } else if (statusResult && !statusResult.ok) {
+      // TODO: we do have more fine-grained status data available for a more accurate message?
+      game.switchScene("notavailable", {
+        heading: "Offline",
+        message: "We are offline right now, please come back later",
+      });
+    }
+  }
+}
+scenes.add(InitializeScene);
+
+class LobbyScene extends UIScene {
+  static name = "lobby-scene";
+  enter(params = {}) {
+    console.log("LobbyState, got params", params);
+    super.enter(params);
+    console.log("Entered lobby scene");
+    // this.userList = this.querySelector("#playersjoined");
+    // this.addUser({ id: "playerone", name: "", placeholder: "Your name goes here" });
+
+
+    // this.client.enrollUser().then(data => {
+    //   for (let user of data.added) {
+    //     this.addUser(Object.assign(user, { remote: true }));
+    //   }
+    // })
+  }
+}
+scenes.add(LobbyScene);
+
+class GameScene extends UIScene {
+  static name = "game-scene";
+  async enter(params = {}) {
+    super.enter(params);
+    console.log("Entered Game Scene");
+  }
+}
+scenes.add(GameScene);
+
+class MessageScene extends UIScene {
+  connectedCallback() {
+    super.connectedCallback();
+    this.heading = this.querySelector(".heading");
+    this.message = this.querySelector(".message");
+  }
+  enter(_params) {
+    const params = Object.assign({
+      heading: "Not Available",
+      message: "",
+    }, _params);
+    super.enter(params);
+    console.log("Enter MessageScene, params:", params);
+
+    if (params.titleText) {
+      this.heading.textContent = params.titleText;
+    } else {
+      this.heading.textContent = params.heading;
+    }
+    if (params.contentFragment) {
+      this.message.textContent = "";
+      this.message.appendChild(params.contentFragment);
+    } else {
+      this.message.textContent = params.message;
+    }
+    if (params.className) {
+      if (this.message.firstElementChild.hasAttribute("class")) {
+        let node = this.querySelector(".body-upper");
+        for (let cls of params.className.split(" ")) {
+          node.classList.add(cls);
+        }
+      }
+    }
+    // if (typeof window.gtag == "function") {
+    //   gtag('event', 'exception', {
+    //     'description': params.errorCode || params.heading,
+    //     'fatal': false,
+    //   });
+    // }
+  }
+  exit() {
+    super.exit();
+    this.querySelector(".body-upper").className = "body-upper";
+  }
+}
+class NotAvailableScene extends MessageScene {
+  static name = "notavailable-scene";
+}
+scenes.add(NotAvailableScene);
+
+class GoodbyeScene extends MessageScene {
+  static name = "goodbye-scene";
+}
+scenes.add(GoodbyeScene);
+
+function defineCustomElements(elementRegistry = window.customElements) {
+  for (const SceneClass of scenes) {
+    if (SceneClass.name) {
+      elementRegistry.define(SceneClass.name, SceneClass);
+    }
+  }
+}
+if (window?.customElements) {
+  defineCustomElements(window.customElements);
+}
+
+/***/ }),
+
 /***/ "./node_modules/@firebase/app/dist/esm/index.esm2017.js":
 /*!**************************************************************!*\
   !*** ./node_modules/@firebase/app/dist/esm/index.esm2017.js ***!
@@ -32037,17 +32313,21 @@ __webpack_require__.r(__webpack_exports__);
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-/*!**********************!*\
-  !*** ./src/index.js ***!
-  \**********************/
+/*!********************!*\
+  !*** ./src/app.js ***!
+  \********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _collections__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./collections */ "./src/collections.js");
 /* harmony import */ var _game_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./game-client */ "./src/game-client.js");
 /* harmony import */ var _elements__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./elements */ "./src/elements.js");
-/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./config */ "./src/config.js");
-/* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
-/* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
-// src/index.js
+/* harmony import */ var _ui_app__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./ui-app */ "./src/ui-app.js");
+/* harmony import */ var _ui_scene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./ui-scene */ "./src/ui-scene.js");
+/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./config */ "./src/config.js");
+/* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
+/* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
+// src/app.js
+
+
 
 
 
@@ -32060,15 +32340,17 @@ __webpack_require__.r(__webpack_exports__);
 customElements.define("doc-item", _elements__WEBPACK_IMPORTED_MODULE_2__.DocumentItem);
 customElements.define("doc-list", _elements__WEBPACK_IMPORTED_MODULE_2__.DocumentsList);
 customElements.define("games-list", _elements__WEBPACK_IMPORTED_MODULE_2__.GamesList);
+window.uiScene = _ui_scene__WEBPACK_IMPORTED_MODULE_4__;
+console.log("scene module:", _ui_scene__WEBPACK_IMPORTED_MODULE_4__);
 
-const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_4__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_3__.firebaseConfig);
-const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_5__.getDatabase)(firebaseApp, "http://localhost:9000/?ns=shieldsup-api-test");
+const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_6__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_5__.firebaseConfig);
+const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.getDatabase)(firebaseApp, "http://localhost:9000/?ns=shieldsup-api-test");
 (0,_collections__WEBPACK_IMPORTED_MODULE_0__.useDatabase)(db);
 
-if (_config__WEBPACK_IMPORTED_MODULE_3__.inEmulation) {
+if (_config__WEBPACK_IMPORTED_MODULE_5__.inEmulation) {
   // Point to the RTDB emulator running on localhost.
-  console.log("Connecting database emulator", _config__WEBPACK_IMPORTED_MODULE_3__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_3__.firebaseEmulators.database.port);
-  (0,firebase_database__WEBPACK_IMPORTED_MODULE_5__.connectDatabaseEmulator)(db, _config__WEBPACK_IMPORTED_MODULE_3__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_3__.firebaseEmulators.database.port);
+  console.log("Connecting database emulator", _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.port);
+  (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.connectDatabaseEmulator)(db, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.port);
 }
 
 function connectClient() {
@@ -32079,121 +32361,28 @@ function connectClient() {
   return client;
 }
 
-const UI = window.UI = new class _FormUI {
-  get gameUpdateBtn() {
-    return document.getElementById("gameUpdateBtn")
-  }
-  init(rootElem) {
-    console.log("Init UI with rootElem:", rootElem);
-    this.rootElem = rootElem;
-    this.form = rootElem.querySelector("form");
-    this.rootElem.addEventListener("click", this);
-    window.gameClient.on("request/success", (result) => {
-      this.displayStatus(result.status);
-    });
-    window.gameClient.on("request/failure", (result) => {
-      this.displayStatus(result.status);
-    });
-  }
-  update({ loggedIn } = {}) {
-    const remoteBackedElements = document.querySelectorAll("[data-remoteid]");
-    console.log("remoteBackedElements:", remoteBackedElements.length);
-    remoteBackedElements.forEach(elem => {
-      switch (elem.dataType) {
-        case "item":
-          elem.disabled = !loggedIn;
-          console.log("CE item type with remoteid", elem.dataset.remoteid);
-          break;
-        case "list": {
-          elem.disabled = !loggedIn;
-          if (loggedIn) {
-            if (!elem.collection) {
-              const collection = window[elem.id + "-model"] = new _collections__WEBPACK_IMPORTED_MODULE_0__.RemoteList(elem.dataset.remoteid);
-              elem.setCollection(collection);
-            }
-          }
-          break;
-        }
-        default:
-          console.log("Unknown element with [remoteid]", elem);
-          break;
-      }
-    });
-  }
-  handleButtonClick(event) {
-    let action = event.target.dataset.action;
-    event.preventDefault();
-    if (action == "api-request") {
-      const overrideUrl = this.form.elements["override-url"].value;
-      if (overrideUrl) {
-        window.gameClient.overrideUrl = overrideUrl;
-      } else {
-        delete window.gameClient.overrideUrl;
-      }
-    }
-    switch (event.target.id) {
-      case "loginBtn":
-        window.gameClient.login("test@example.com", "testy1");
-        break;
-      case "anonLoginBtn":
-        window.gameClient.login();
-        break;
-      case "logoutBtn":
-        window.gameClient.logout();
-        break;
-      case "gameUpdateBtn": {
-        const pathId = document.getElementById('datalabel').textContent.trim();
-        let data;
-        try {
-          data = JSON.parse(document.getElementById('datainput').value);
-        } catch (ex) {
-          console.warn("Bad data format, it should be valid JSON", ex);
-          return;
-        }
-        window.gameClient.updateEntity(
-          pathId, data
-        );
-        break;
-      }
-    }
-  }
-  handleEvent(event) {
-    if (event.type == "click" && event.target.localName =="button") {
-      this.handleButtonClick(event);
-    }
-  }
-  displayStatus(statusValue) {
-    const item = document.createElement("li");
-    item.textContent = statusValue;
-    this.rootElem.querySelector("#status").appendChild(item);
-  }
-}();
+window.onload = function() {
+  const app = window.app = new _ui_app__WEBPACK_IMPORTED_MODULE_3__.UIApp();
 
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("In DOMContentLoaded");
-  const client = window.gameClient = connectClient();
-  window.UI.init(document.body);
-  client.on("signedin", ({ user, idToken }) => {
-    console.log("Client signedin, got idToken:", idToken);
-    console.log("Client signedin, got user:", user);
-    const latest = window.theLatest = new _collections__WEBPACK_IMPORTED_MODULE_0__.RemoteObject("games/thelatest");
-    latest.on("value", (val) => {
-      document.getElementById("datalabel").textContent = latest.path;
-      document.getElementById("datainput").textContent = JSON.stringify({
-        displayName: val.displayName
-      }, null, 2);
-      console.log(`Got value from ${latest.path}: ${JSON.stringify(val)}`);
-    });
-    window.UI.update({ loggedIn: true });
-  });
-  client.on("signedout", () => {
-    window.UI.update({ loggedIn: false });
-  });
-});
+  const client =  game.client = connectClient(window.config);
+  const sceneArgs = {
+    app, client
+  };
+  for(const sceneElem of document.querySelectorAll(".ui-scene")) {
+    if (!sceneElem.id) {
+      console.warn("Scene element found with no id:", sceneElem);
+      continue;
+    }
+    sceneElem.configure(sceneArgs);
+    app.registerScene(sceneElem.id, sceneElem);
+  }
 
+  // start at the welcome screen
+  app.switchScene("welcome");
+};
 
 })();
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.js.map
+//# sourceMappingURL=app.bundle.js.map

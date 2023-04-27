@@ -3,3 +3,9 @@ body {
   background-color: #eee;
   color: #012;
 }
+.hidden {
+  display: none;
+}
+.scene-ui:not(.hidden) {
+  display: block;
+}
