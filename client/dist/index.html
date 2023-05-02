@@ -4,10 +4,33 @@
     <meta charset="UTF-8">
     <link rel="StyleSheet" href="./style.css">
     <script type="module" src="./form.bundle.js"></script>
+    <style>
+      body.logged-in #loginBtn,
+      body.logged-in #anonLoginBtn,
+      body:not(.logged-in) #logoutBtn {
+        opacity: 0.8;
+        color: grey;
+      }
+      user-info {
+        border: 1px solid grey;
+        display: block;
+        padding: 1em;
+        display: flex;
+      }
+      user-info.logged-in {
+        border-color: yellowgreen;
+      }
+      user-info.authenticated {
+        border-color: green;
+      }
+    </style>
   </head>
   <body>
     <h1>Firebase</h1>
     <form>
+      <section id="user-panel">
+        <user-info></user-info>
+      </section>
       <p>
         <button id="loginBtn">Login</button>
         <button id="anonLoginBtn" onclick="gameClient.login()">Login Anon</button>

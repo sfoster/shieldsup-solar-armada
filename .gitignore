@@ -10,6 +10,9 @@ firebase-debug.*.log*
 # secrets
 .secrets
 
+# source map files
+dist/*.map
+
 # Firebase cache
 .firebase/
 
