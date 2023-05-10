@@ -1,5 +1,21 @@
 import { getAuth, signOut, signInAnonymously, signInWithEmailAndPassword, connectAuthEmulator, onAuthStateChanged } from "firebase/auth";
 import { EventEmitterMixin } from './event-emitter';
+
+class User extends EventEmitterMixin(Object) {
+  get displayName() {
+    return this.remoteUser?.displayName || "(none)";
+  }
+  get avatarUrl() {
+    return "";
+  }
+  update(properties = {}) {
+    for(let [pname, pvalue] of Object.entries(properties)) {
+      this[pname] = pvalue;
+    }
+    this.emit("changed");
+  }
+}
+
 export class GameClient extends EventEmitterMixin(Object) {
   connected = false;
   urlPrefix = "/api";
@@ -7,32 +23,45 @@ export class GameClient extends EventEmitterMixin(Object) {
   init(firebaseApp) {
     console.log("in _Client.init");
     this.auth = getAuth(firebaseApp);
+    this.userModel = new User();
     connectAuthEmulator(this.auth, "http://localhost:9099");
-    onAuthStateChanged(this.auth, (user) => {
-      console.log("onAuthStateChanged:", user);
-      if (user) {
-        this.onUserAuthenticated(user);
+    onAuthStateChanged(this.auth, (firebaseUser) => {
+      console.log("onAuthStateChanged:", firebaseUser);
+      if (firebaseUser) {
+        this.onFirebaseUserAuthenticated(firebaseUser);
       } else {
-        this.onUserLogout();
+        this.onFirebaseUserLogout();
       }
     });
+  }
+  get remoteUser() {
+    return this.userModel.remoteUser;
   }
   createUrl(resourcePath) {
     return `${this.overrideUrl ?? this.urlPrefix}/${resourcePath}`;
   }
-  async onUserAuthenticated(user) {
-    console.assert(this.auth.currentUser == user, "user arg is auth's currentUser");
-    this.currentUserIdToken = await user.getIdToken();
-    this.currentUser = user;
+  async onFirebaseUserAuthenticated(firebaseUser) {
+    console.assert(this.auth.currentUser == firebaseUser, "user arg is auth's currentUser");
+    this.remoteUserIdToken = await firebaseUser.getIdToken();
+    this.userModel.remoteUser = firebaseUser;
     this.connected = true;
-    this.emit("signedin", { user: this.currentUser, idToken: this.currentUserIdToken });
+    this.userModel.update({
+      validated: false,
+      loggedIn: true,
+    });
+    this.emit("signedin", { user: this.userModel, idToken: this.remoteUserIdToken });
   }
-  onUserLogout() {
+  onFirebaseUserLogout() {
     this.connected = false;
-    delete this.currentUser;
-    delete this.currentUserIdToken;
+    delete this.userModel.remoteUser;
+    delete this.remoteUserIdToken;
+    this.userModel.update({
+      validated: false,
+      loggedIn: false,
+    });
     this.emit("signedout");
   }
+
   logout() {
     console.log("doing logout");
     return signOut(this.auth);
@@ -59,12 +88,48 @@ export class GameClient extends EventEmitterMixin(Object) {
     }
   }
   updateEntity(path, data) {
-    if (!(this.connected && this.currentUser)) {
+    if (!(this.connected && this.remoteUser)) {
       console.info("User not logged in and/or client not connected");
       return;
     }
     const url = this.createUrl(path);
     return this._apiRequest(url, "PUT", data);
+  }
+  setUser(userModel) {
+    if (userModel && userModel !== this.userModel) {
+      this.userModel = userModel;
+    }
+  }
+  validateUser() {
+    if (!this.userModel) {
+      console.warn(`${this.constructor.name}: can't validateUser, no .userModel`);
+      return;
+    }
+    const firebaseUser = this.userModel.remoteUser;
+    const url = this.createUrl("usercheck");
+    if (firebaseUser && !firebaseUser.isAnonymous) {
+      // could also check metadata.lastLoginAt / lastSignInTime
+      let validated = false;
+      this._apiRequest(url, "POST", {
+        email: firebaseUser.email,
+        providerId: firebaseUser.providerId,
+        uid: firebaseUser.uid
+      }).then(result => {
+        console.log("validateUser got result:", result);
+        validated = (result && result.ok);
+      }).catch(() => {
+        validated = false;
+      }).finally(() => {
+        this.userModel.update({
+          validated,
+        });
+        if (validated) {
+          this.emit("uservalidated", { user: this.userModel });
+        } else {
+          this.emit("usernotvalidated", { user: this.userModel });
+        }
+      });
+    }
   }
   async _apiRequest(url, method, payload) {
     console.log(`Sending request to update: ${url} with payload:`, payload);
@@ -79,7 +144,7 @@ export class GameClient extends EventEmitterMixin(Object) {
         // TODO: Use Authorization header or add the token into this request envelope?
         body: JSON.stringify({
           data: payload,
-          credential: `token=${this.currentUserIdToken}`,
+          credential: `token=${this.remoteUserIdToken}`,
         })
       });
     } catch (ex) {
@@ -99,10 +164,10 @@ export class GameClient extends EventEmitterMixin(Object) {
         case 401:
           console.log("Got unauthorized response:", resp.status, resp.statusText, result);
           // unauthorized:
-          if (this.currentUser) {
+          if (this.userModel.remoteUser) {
             // token expired maybe?
             console.log("Force logout because of unauthorized response");
-            this.onUserLogout();
+            this.onFirebaseUserLogout();
           }
           break;
         case 403:
@@ -115,5 +180,6 @@ export class GameClient extends EventEmitterMixin(Object) {
       this.emit("request/failure", result);
       console.warn("error response:", resp);
     }
+    return result;
   }
 };

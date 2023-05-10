@@ -26607,6 +26607,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _event_emitter__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./event-emitter */ "./src/event-emitter.js");
 
 
+
+class User extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmitterMixin)(Object) {
+  get displayName() {
+    return this.remoteUser?.displayName || "(none)";
+  }
+  get avatarUrl() {
+    return "";
+  }
+  update(properties = {}) {
+    for(let [pname, pvalue] of Object.entries(properties)) {
+      this[pname] = pvalue;
+    }
+    this.emit("changed");
+  }
+}
+
 class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmitterMixin)(Object) {
   connected = false;
   urlPrefix = "/api";
@@ -26614,32 +26630,45 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
   init(firebaseApp) {
     console.log("in _Client.init");
     this.auth = (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getAuth)(firebaseApp);
+    this.userModel = new User();
     (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.connectAuthEmulator)(this.auth, "http://localhost:9099");
-    (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onAuthStateChanged)(this.auth, (user) => {
-      console.log("onAuthStateChanged:", user);
-      if (user) {
-        this.onUserAuthenticated(user);
+    (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onAuthStateChanged)(this.auth, (firebaseUser) => {
+      console.log("onAuthStateChanged:", firebaseUser);
+      if (firebaseUser) {
+        this.onFirebaseUserAuthenticated(firebaseUser);
       } else {
-        this.onUserLogout();
+        this.onFirebaseUserLogout();
       }
     });
+  }
+  get remoteUser() {
+    return this.userModel.remoteUser;
   }
   createUrl(resourcePath) {
     return `${this.overrideUrl ?? this.urlPrefix}/${resourcePath}`;
   }
-  async onUserAuthenticated(user) {
-    console.assert(this.auth.currentUser == user, "user arg is auth's currentUser");
-    this.currentUserIdToken = await user.getIdToken();
-    this.currentUser = user;
+  async onFirebaseUserAuthenticated(firebaseUser) {
+    console.assert(this.auth.currentUser == firebaseUser, "user arg is auth's currentUser");
+    this.remoteUserIdToken = await firebaseUser.getIdToken();
+    this.userModel.remoteUser = firebaseUser;
     this.connected = true;
-    this.emit("signedin", { user: this.currentUser, idToken: this.currentUserIdToken });
+    this.userModel.update({
+      validated: false,
+      loggedIn: true,
+    });
+    this.emit("signedin", { user: this.userModel, idToken: this.remoteUserIdToken });
   }
-  onUserLogout() {
+  onFirebaseUserLogout() {
     this.connected = false;
-    delete this.currentUser;
-    delete this.currentUserIdToken;
+    delete this.userModel.remoteUser;
+    delete this.remoteUserIdToken;
+    this.userModel.update({
+      validated: false,
+      loggedIn: false,
+    });
     this.emit("signedout");
   }
+
   logout() {
     console.log("doing logout");
     return (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signOut)(this.auth);
@@ -26666,12 +26695,48 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
     }
   }
   updateEntity(path, data) {
-    if (!(this.connected && this.currentUser)) {
+    if (!(this.connected && this.remoteUser)) {
       console.info("User not logged in and/or client not connected");
       return;
     }
     const url = this.createUrl(path);
     return this._apiRequest(url, "PUT", data);
+  }
+  setUser(userModel) {
+    if (userModel && userModel !== this.userModel) {
+      this.userModel = userModel;
+    }
+  }
+  validateUser() {
+    if (!this.userModel) {
+      console.warn(`${this.constructor.name}: can't validateUser, no .userModel`);
+      return;
+    }
+    const firebaseUser = this.userModel.remoteUser;
+    const url = this.createUrl("usercheck");
+    if (firebaseUser && !firebaseUser.isAnonymous) {
+      // could also check metadata.lastLoginAt / lastSignInTime
+      let validated = false;
+      this._apiRequest(url, "POST", {
+        email: firebaseUser.email,
+        providerId: firebaseUser.providerId,
+        uid: firebaseUser.uid
+      }).then(result => {
+        console.log("validateUser got result:", result);
+        validated = (result && result.ok);
+      }).catch(() => {
+        validated = false;
+      }).finally(() => {
+        this.userModel.update({
+          validated,
+        });
+        if (validated) {
+          this.emit("uservalidated", { user: this.userModel });
+        } else {
+          this.emit("usernotvalidated", { user: this.userModel });
+        }
+      });
+    }
   }
   async _apiRequest(url, method, payload) {
     console.log(`Sending request to update: ${url} with payload:`, payload);
@@ -26686,7 +26751,7 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
         // TODO: Use Authorization header or add the token into this request envelope?
         body: JSON.stringify({
           data: payload,
-          credential: `token=${this.currentUserIdToken}`,
+          credential: `token=${this.remoteUserIdToken}`,
         })
       });
     } catch (ex) {
@@ -26706,10 +26771,10 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
         case 401:
           console.log("Got unauthorized response:", resp.status, resp.statusText, result);
           // unauthorized:
-          if (this.currentUser) {
+          if (this.userModel.remoteUser) {
             // token expired maybe?
             console.log("Force logout because of unauthorized response");
-            this.onUserLogout();
+            this.onFirebaseUserLogout();
           }
           break;
         case 403:
@@ -26722,6 +26787,7 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
       this.emit("request/failure", result);
       console.warn("error response:", resp);
     }
+    return result;
   }
 };
 
@@ -32344,7 +32410,7 @@ window.uiScene = _ui_scene__WEBPACK_IMPORTED_MODULE_4__;
 console.log("scene module:", _ui_scene__WEBPACK_IMPORTED_MODULE_4__);
 
 const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_6__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_5__.firebaseConfig);
-const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.getDatabase)(firebaseApp, "http://localhost:9000/?ns=shieldsup-api-test");
+const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.getDatabase)(firebaseApp, `http://localhost:9000/?ns=${_config__WEBPACK_IMPORTED_MODULE_5__.firebaseConfig.projectId}`);
 (0,_collections__WEBPACK_IMPORTED_MODULE_0__.useDatabase)(db);
 
 if (_config__WEBPACK_IMPORTED_MODULE_5__.inEmulation) {

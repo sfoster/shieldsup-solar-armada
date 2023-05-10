@@ -21,7 +21,7 @@ window.uiScene = scene;
 console.log("scene module:", scene);
 
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp, "http://localhost:9000/?ns=shieldsup-api-test");
+const db = getDatabase(firebaseApp, `http://localhost:9000/?ns=${firebaseConfig.projectId}`);
 useDatabase(db);
 
 if (inEmulation) {

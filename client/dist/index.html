@@ -7,7 +7,9 @@
     <style>
       body.logged-in #loginBtn,
       body.logged-in #anonLoginBtn,
-      body:not(.logged-in) #logoutBtn {
+      body.validated #validateBtn,
+      body:not(.logged-in) #logoutBtn,
+      body:not(.logged-in) #validateBtn {
         opacity: 0.8;
         color: grey;
       }
@@ -18,10 +20,10 @@
         display: flex;
       }
       user-info.logged-in {
-        border-color: yellowgreen;
+        border-color: #666;
       }
-      user-info.authenticated {
-        border-color: green;
+      user-info.validated {
+        border-color: #000;
       }
     </style>
   </head>
@@ -33,8 +35,9 @@
       </section>
       <p>
         <button id="loginBtn">Login</button>
-        <button id="anonLoginBtn" onclick="gameClient.login()">Login Anon</button>
-        <button id="logoutBtn" onclick="gameClient.logout()">Logout</button>
+        <button id="anonLoginBtn">Login Anon</button>
+        <button id="logoutBtn">Logout</button>
+        <button id="validateBtn">Validate</button>
       </p>
       <p>
         <label for="no-override"><input type="radio" name="override-url" id="no-override" checked value="">No override</label>

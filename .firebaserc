@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "shieldsup-api-test",
-    "dev": "shieldsup-api-test"
+    "default": "demo-shieldsup-api-test",
+    "dev": "demo-shieldsup-api-test"
   }
 }
