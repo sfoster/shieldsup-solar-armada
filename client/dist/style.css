@@ -9,3 +9,24 @@ body {
 .scene-ui:not(.hidden) {
   display: block;
 }
+
+#login.logged-in #loginBtn,
+#login.logged-in #anonLoginBtn,
+#login.validated #validateBtn,
+#login:not(.logged-in) #logoutBtn,
+#login:not(.logged-in) #validateBtn {
+  opacity: 0.8;
+  color: grey;
+}
+user-info {
+  border: 1px solid grey;
+  display: block;
+  padding: 1em;
+  display: flex;
+}
+user-info.logged-in {
+  border-color: #666;
+}
+user-info.validated {
+  border-color: #000;
+}

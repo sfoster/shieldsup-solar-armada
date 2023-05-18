@@ -3,7 +3,10 @@ import { useClient, useDatabase, RemoteObject, RemoteList } from './collections'
 import { GameClient } from './game-client';
 import { DocumentItem, DocumentsList, GamesList } from './elements';
 import { UIApp } from './ui-app';
-import * as scene from './ui-scene';
+import { UIScene } from './ui-scene';
+import { LoginScene } from './login-scene';
+import { LobbyScene } from './lobby-scene';
+import * as scenes from './ui-scenes';
 
 import {
   firebaseConfig,
@@ -14,11 +17,18 @@ import {
 import { initializeApp } from 'firebase/app';
 import { getDatabase, connectDatabaseEmulator, ref, child, onValue, get } from 'firebase/database';
 
+for (const SceneClass of UIScene.scenes) {
+  if (SceneClass.name) {
+    console.log("Defining new custom UIScene-based element:", SceneClass.name);
+    customElements.define(SceneClass.sceneName, SceneClass);
+  }
+}
+
 customElements.define("doc-item", DocumentItem);
 customElements.define("doc-list", DocumentsList);
 customElements.define("games-list", GamesList);
-window.uiScene = scene;
-console.log("scene module:", scene);
+window.uiScenes = scenes;
+console.log("scenes module:", scenes);
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp, `http://localhost:9000/?ns=${firebaseConfig.projectId}`);
@@ -41,7 +51,9 @@ function connectClient() {
 window.onload = function() {
   const app = window.app = new UIApp();
 
-  const client =  game.client = connectClient(window.config);
+  const client = app.client = connectClient(window.config);
+  console.log("onload, got game client:", client);
+  console.log("onload, got app:", app);
   const sceneArgs = {
     app, client
   };
@@ -50,10 +62,12 @@ window.onload = function() {
       console.warn("Scene element found with no id:", sceneElem);
       continue;
     }
-    sceneElem.configure(sceneArgs);
+    sceneElem.configure({ ...sceneArgs });
     app.registerScene(sceneElem.id, sceneElem);
   }
 
   // start at the welcome screen
-  app.switchScene("welcome");
+  requestAnimationFrame(() => {
+    app.switchScene("welcome");
+  });
 };

@@ -3,58 +3,62 @@
   <head>
     <meta charset="UTF-8">
     <link rel="StyleSheet" href="./style.css">
-    <script type="module" src="./form.bundle.js"></script>
-    <style>
-      body.logged-in #loginBtn,
-      body.logged-in #anonLoginBtn,
-      body.validated #validateBtn,
-      body:not(.logged-in) #logoutBtn,
-      body:not(.logged-in) #validateBtn {
-        opacity: 0.8;
-        color: grey;
-      }
-      user-info {
-        border: 1px solid grey;
-        display: block;
-        padding: 1em;
-        display: flex;
-      }
-      user-info.logged-in {
-        border-color: #666;
-      }
-      user-info.validated {
-        border-color: #000;
-      }
-    </style>
+    <script type="module" src="./app.bundle.js"></script>
   </head>
   <body>
-    <h1>Firebase</h1>
-    <form>
-      <section id="user-panel">
-        <user-info></user-info>
-      </section>
-      <p>
-        <button id="loginBtn">Login</button>
-        <button id="anonLoginBtn">Login Anon</button>
-        <button id="logoutBtn">Logout</button>
-        <button id="validateBtn">Validate</button>
-      </p>
-      <p>
-        <label for="no-override"><input type="radio" name="override-url" id="no-override" checked value="">No override</label>
-        <label for="unauthorized-override"><input type="radio" name="override-url" id="unauthorized-override" value="/api/unauthorized">401 Unauthorized</label>
-        <label for="forbidden-override"><input type="radio" name="override-url" id="forbidden-override" value="/api/forbidden">403 Forbidden</label>
-      </p>
-      <games-list id="games-list" data-remoteid="games"></games-list>
-      <doc-list id="users-list" data-remoteid="users"></doc-list>
-      <hr>
-      <section>
-        <h4 id="datalabel"></h4>
-        <textarea id="datainput" style="width:80%; height: 10rem"></textarea>
-        <p><button id="gameUpdateBtn" data-action="api-request">PUT data</button></p>
-      </section>
-    </form>
-    <footer>
-      <ul id="status"></ul>
+    <section is="initialize-scene" id="welcome">
+      <h1>Welcome</h1>
+      <p>Waiting...</p>
+    </section>
+    <section is="login-scene" id="login">
+      <h1>Login</h1>
+      <form>
+        <section id="user-panel">
+          <user-info></user-info>
+        </section>
+        <p>
+          <button id="loginBtn">Login</button>
+          <button id="anonLoginBtn">Login Anon</button>
+          <button id="logoutBtn">Logout</button>
+          <button id="validateBtn">Validate</button>
+        </p>
+        <p>
+          <label for="no-override"><input type="radio" name="override-url" id="no-override" checked value="">No override</label>
+          <label for="unauthorized-override"><input type="radio" name="override-url" id="unauthorized-override" value="/api/unauthorized">401 Unauthorized</label>
+          <label for="forbidden-override"><input type="radio" name="override-url" id="forbidden-override" value="/api/forbidden">403 Forbidden</label>
+        </p>
+        <games-list id="games-list" data-remoteid="games"></games-list>
+        <doc-list id="users-list" data-remoteid="users"></doc-list>
+        <hr>
+        <section>
+          <h4 id="datalabel"></h4>
+          <textarea id="datainput" style="width:80%; height: 10rem"></textarea>
+          <p><button id="gameUpdateBtn" data-action="api-request">PUT data</button></p>
+        </section>
+      </form>
+    </section>
+    <section is="lobby-scene" id="lobby">
+      <h1>Lobby</h1>
+      <div id="lobby-content"></div>
+    </section>
+    <section is="game-scene" id="game">
+      <h1>The Game</h1>
+      <p>Content goes here</p>
+    </section>
+    <section is="goodbye-scene" id="goodbye">
+      <h1 class="heading">Goodbye</h1>
+      <div class="message">
+        <p>Content goes here</p>
+      </div>
+    </section>
+    <section is="notavailable-scene" id="notavailable">
+      <h1 class="heading">Not Available</h1>
+      <div class="message">
+        <p>Content goes here</p>
+      </div>
+    </section>
+    <footer id="">
+      <ul id="messages"></ul>
     </footer>
   </body>
 </html>

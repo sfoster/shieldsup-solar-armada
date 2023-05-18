@@ -10,8 +10,11 @@ firebase-debug.*.log*
 # secrets
 .secrets
 
+# the webpack bundle files
+client/dist/app.bundle.js
+
 # source map files
-dist/*.map
+client/dist/*.map
 
 # Firebase cache
 .firebase/

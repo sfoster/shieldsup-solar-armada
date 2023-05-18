@@ -41,6 +41,7 @@ export class GameClient extends EventEmitterMixin(Object) {
     return `${this.overrideUrl ?? this.urlPrefix}/${resourcePath}`;
   }
   async onFirebaseUserAuthenticated(firebaseUser) {
+    console.log("onFirebaseUserAuthenticated:", firebaseUser);
     console.assert(this.auth.currentUser == firebaseUser, "user arg is auth's currentUser");
     this.remoteUserIdToken = await firebaseUser.getIdToken();
     this.userModel.remoteUser = firebaseUser;

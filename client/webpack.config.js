@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = {
   // The entry point file described above
   entry: {
-    form: './src/form.js',
     app:   './src/app.js',
   },
   // The location of the build folder described above
