@@ -15,6 +15,7 @@ export class UIApp {
   }
   switchScene(name, sceneParams = {}) {
     if (!this.scenes[name]) {
+      console.log("no such scene:", this.scenes, name);
       throw new Error("Cant switch to unknown scene: " + name);
     }
 

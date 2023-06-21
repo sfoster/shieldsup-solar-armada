@@ -1,5 +1,5 @@
 {
-  "users": {
+  "players": {
     "rita": {
       "displayName": "Our Rita"
     },
@@ -12,18 +12,10 @@
   },
   "games": {
     "thelatest": {
-      "displayName": "Default Latest Game",
-      "players": {
-        "rita": true,
-        "bob": true
-      }
+      "displayName": "Default Latest Game"
     },
     "yesterdays": {
-      "displayName": "Yesterday's Game",
-      "players": {
-        "sue": true,
-        "bob": true
-      }
+      "displayName": "Yesterday's Game"
     }
   }
 }

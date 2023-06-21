@@ -5,48 +5,27 @@ import { html } from 'lit';
  * Initial scene checks configurations, server availability etc.
  * Forwards to Lobby scene if it all checks out
  */
+
 export class InitializeScene extends UIScene {
   static sceneName = "initialize-scene";
   enter(params = {}) {
     super.enter(params);
-    this.checkConditions().then(result => {
-      if (!result || !result.ok) {
-        return this.statusNotOk(result);
-      } 
-      this.statusOk(result);
-    }).catch(ex =>{
-      console.warn("Exception entering scene: ", ex);
-      this.statusNotOk(ex);
-    })
+    this.checkConditions();
   }
   checkConditions() {
-    if (this.client?.auth?.connected) {
-      return Promise.resolve(new Error("Client not authenticated"));
-    }
-    if (!this.client?.userModel?.loggedIn) {
-      return Promise.resolve(new Error("User not logged in"));
-    }
-    if (!this.client?.userModel?.validated) {
-      return Promise.resolve(new Error("User not validated"));
-    }
-    return Promise.resolve({
-      ok: true,
-      user: this.client.userModel,
-    });
+    this.client.ping()
+      .then((result) => {
+        // we got a successful response so we're at least connected
+        this.statusOk(result)
+      })
+      .catch((err) => this.statusNotOk(err));
   }
   async statusOk(statusData) {
-    if (statusData.user) {
-      this.app.switchScene("lobby", statusData);
-    } else {
-      this.app.requireLogin(statusData);
-    }
+    // made a succesful request, so proceed to login page
+    this.app.switchScene("login", statusData);
   }
   statusNotOk(statusResult){
     if (statusResult && statusResult instanceof Error) {
-      if (statusResult.message.includes("not logged in")) {
-        this.app.switchScene("login");
-        return;
-      }
       this.app.switchScene("notavailable", { heading: "Status Error", message: statusResult.message, });
     } else if (statusResult && !statusResult.ok) {
       // TODO: we do have more fine-grained status data available for a more accurate message?
@@ -57,7 +36,7 @@ export class InitializeScene extends UIScene {
     }
   }
 }
-UIScene.scenes.add(InitializeScene);
+UIScene.registerScene(InitializeScene);
 
 export class GameScene extends UIScene {
   static sceneName = "game-scene";
@@ -66,7 +45,7 @@ export class GameScene extends UIScene {
     console.log("Entered Game Scene");
   }
 }
-UIScene.scenes.add(GameScene);
+UIScene.registerScene(GameScene);
 
 class MessageScene extends UIScene {
   // get heading() {
@@ -122,9 +101,9 @@ class MessageScene extends UIScene {
 class NotAvailableScene extends MessageScene {
   static sceneName = "notavailable-scene";
 }
-UIScene.scenes.add(NotAvailableScene);
+UIScene.registerScene(NotAvailableScene);
 
 class GoodbyeScene extends MessageScene {
   static sceneName = "goodbye-scene";
 }
-UIScene.scenes.add(GoodbyeScene);
+UIScene.registerScene(GoodbyeScene);

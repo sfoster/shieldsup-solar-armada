@@ -1,12 +1,12 @@
 // src/app.js
 import { useClient, useDatabase, RemoteObject, RemoteList } from './collections';
 import { GameClient } from './game-client';
+import { PlayerCard } from './player';
 import { DocumentItem, DocumentsList, GamesList } from './elements';
 import { UIApp } from './ui-app';
-import { UIScene } from './ui-scene';
+import * as scenes from './ui-scenes';
 import { LoginScene } from './login-scene';
 import { LobbyScene } from './lobby-scene';
-import * as scenes from './ui-scenes';
 
 import {
   firebaseConfig,
@@ -16,13 +16,6 @@ import {
 
 import { initializeApp } from 'firebase/app';
 import { getDatabase, connectDatabaseEmulator, ref, child, onValue, get } from 'firebase/database';
-
-for (const SceneClass of UIScene.scenes) {
-  if (SceneClass.name) {
-    console.log("Defining new custom UIScene-based element:", SceneClass.name);
-    customElements.define(SceneClass.sceneName, SceneClass);
-  }
-}
 
 customElements.define("doc-item", DocumentItem);
 customElements.define("doc-list", DocumentsList);
@@ -52,16 +45,18 @@ window.onload = function() {
   const app = window.app = new UIApp();
 
   const client = app.client = connectClient(window.config);
-  console.log("onload, got game client:", client);
-  console.log("onload, got app:", app);
+  // const player = app.player = new Player(app, client);
+  console.log("Player:", player);
   const sceneArgs = {
     app, client
   };
+
   for(const sceneElem of document.querySelectorAll(".ui-scene")) {
     if (!sceneElem.id) {
       console.warn("Scene element found with no id:", sceneElem);
       continue;
     }
+    console.log("configure and register:", sceneElem.id);
     sceneElem.configure({ ...sceneArgs });
     app.registerScene(sceneElem.id, sceneElem);
   }

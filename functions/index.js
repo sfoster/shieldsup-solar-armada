@@ -1,5 +1,5 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
 let inEmulation = process.env.FUNCTIONS_EMULATOR && process.env.FUNCTIONS_EMULATOR == "true";
 //const serviceAccount = require("../.secrets/api-project-482814424574-de59b6e3ffb8.json");
@@ -14,7 +14,7 @@ const firebaseProjectConfig = Object.assign(
   functions.config().firebase
 );
 
-const express = require('express');
+const express = require("express");
 // Initialize the app with a service account, granting admin privileges
 admin.initializeApp(firebaseProjectConfig);
 const db = admin.database();
@@ -35,9 +35,19 @@ function updateDocument(path, newData) {
   console.log("updateDocument, got path:", path, newData);
 
   const ref = db.ref(path);
-  return ref.update(Object.assign({}, newData, {
-    lastUpdated: Date.now(),
-  }));
+  return documentRefChange(ref, "update", newData);
+}
+
+function documentRefChange(ref, method, theData) {
+  const promiseComplete = new Promise((resolve, reject) => {
+    ref[method](Object.assign({}, theData, {
+      lastUpdated: Date.now(),
+    }), (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+  return promiseComplete;
 }
 
 function checkAuth(req, resp, next) {
@@ -55,8 +65,9 @@ function checkAuth(req, resp, next) {
     if (idToken) {
       const firebaseAuth = getAuth();
       firebaseAuth.verifyIdToken(idToken)
-      .then(() => {
-        console.log("idToken verified");
+      .then((decodedToken) => {
+        app.locals.uid = decodedToken.uid;
+        console.log("idToken verified, uid:", app.locals.uid);
         next();
       })
       .catch(error => {
@@ -66,7 +77,7 @@ function checkAuth(req, resp, next) {
       return;
     }
   }
-  res.status(403).json({ "status": "unauthorized", "ok": false });
+  resp.status(403).json({ "status": "unauthorized", "ok": false });
 }
 
 function checkProposedChange(req, resp, next) {
@@ -85,18 +96,16 @@ function checkProposedChange(req, resp, next) {
 }
 
 app.use(express.json());
-// require all API requests to be auth'd.
-app.use('/api', checkAuth);
+// require all API requests to be auth"d.
+app.use("/api", checkAuth);
 
-// respond with list of all entities and assets when a GET request is made to the homepage
-app.get('/api', (req, resp) => {
+app.get("/api", (req, resp) => {
   resp.json({ "status": "ok", ok: true });
 });
 
 app.get(
-  "/api/hello",
-  async (req, resp) => {
-    resp.json({ message: "Hi", ok: true });
+  "/api/hello", (req, resp) => {
+    resp.json({ message: "Hi", "status": "ok", ok: true });
   }
 );
 
@@ -104,7 +113,7 @@ app.get(
   "/api/games/:id",
   async (req, resp) => {
     const payload = {};
-    for (let collName of ['games', 'users']) {
+    for (let collName of ["games", "users"]) {
       const results = await getCollection(collName);
       payload[collName] = results;
     }
@@ -130,9 +139,63 @@ app.post("/api/usercheck", async (req, resp) => {
   // if the auth middleware lets us get this far, all is good
   resp.json({
     status: "ok",
+    uid: app.locals.uid,
     ok: true,
   });
 });
+
+app.post("/api/joinserver", async (req, resp) => {
+  let success = true;
+  let message = "";
+  try {
+    // create a new server user object, using the auth'd uid
+    const playerRef = db.ref(`players/${app.locals.uid}`);
+    const lastSeen = Date.now();
+    console.log("Handling joinserver, updating player doc with:", req.body.data);
+    playerRef.set(Object.assign({
+      lastSeen
+    }, req.body.data));
+  } catch (ex) {
+    success = false;
+    message = ex.message;
+  }
+  if (success) {
+    resp.json({
+      status: "ok",
+      ok: true,
+    });
+  } else {
+    console.log("Returning error 512 because: ", message);
+    resp.status(512).json({ "status": "nope", ok: false });
+  }
+});
+
+app.post("/api/joingame/:gameId", async (req, resp) => {
+  // attach the user to this game
+  console.log("handling request to join game:", req.params.gameId);
+  let success = true;
+  const playerRef = ref(db, `players/${app.locals.uid}`);
+  try {
+    playerRef.update({
+      // TODO: validate this gameId: it should exist, be open etc.
+      // Could use a transaction to get the game document, write the playerId and displayName in there
+      // While also writing the gameId to the player document
+      gameId: req.params.gameId
+    });
+  } catch (ex) {
+    success = false;
+    console.warn("Failed to add player:", ex);
+  }
+  if (success) {
+    resp.json({
+      status: "ok",
+      ok: true,
+    });
+  } else {
+    resp.status(512).json({ "status": "nope", ok: false });
+  }
+});
+
 // check any update against some game logic
 app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
   if (resp.headersSent) {

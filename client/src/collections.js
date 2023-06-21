@@ -14,40 +14,55 @@ export class RemoteObject extends EventEmitterMixin(Object) {
   constructor(path) {
     super();
     this._path = path;
-    Object.defineProperty(this, 'dbRef', {
-      value: db ? ref(db, this.path) : null,
-      writable: false
-    });
+    // Object.defineProperty(this, 'dbRef', {
+    //   value: db ? ref(db, this.path) : null,
+    //   writable: false
+    // });
+  }
+  get dbRef() {
+    return db ? ref(db, this.path) : null;
   }
   get path() {
     return this._path;
   }
-  on(...args) {
-    if (!this._watched) {
-      this.watch();
+  setPath(value) {
+    this._path = value;
+    if (this._unsubscriber) {
+      this.unwatch();
     }
-    return super.on(...args);
+    return this.watch();
+  }
+  on(...args) {
+    super.on(...args);
+    this.watch();
   }
   watch() {
     if (!client.connected) {
       console.warn("Client isn't connected");
       return;
     }
-    if (this._watched) {
+    if (!this.path) {
+      console.warn("No db path defined");
       return;
     }
-    onValue(this.dbRef, (snapshot) => {
+    this.unwatch();
+    this._unsubscriber = onValue(this.dbRef, (snapshot) => {
       this.onSnapshot(snapshot);
+      console.log(`${this.constructor.name}/${this.path}, onValue, called onSnapshot`);
     });
-    this._watched = true;
+  }
+  unwatch() {
+    if (this._unsubscriber) {
+      this._unsubscriber();
+    }
   }
   onSnapshot(snapshot) {
-    const result = snapshot.val();
-    console.log("emitting on 'value':", result);
-    this.emit("value", result);
-    // snapshot.forEach((childSnapshot) => {
-    //   results.push({ key: childSnapshot.key, value: childSnapshot.val()});
-    // });
+    this._lastResult = snapshot.val();
+    let result = Object.assign({}, this._lastResult);
+    this.emit("value", result, this);
+  }
+  getProperty(pname) {
+    return this._lastResult ? this._lastResult[pname] : undefined;
   }
   handleTopic(topic) {
     console.log("handleTopic:", topic);
@@ -57,9 +72,14 @@ export class RemoteObject extends EventEmitterMixin(Object) {
 export class RemoteList extends RemoteObject {
   onSnapshot(snapshot) {
     const results = [];
+    this.byPath = new Map();
     snapshot.forEach((childSnapshot) => {
-      results.push({ key: childSnapshot.key, value: childSnapshot.val()});
+      const itemData = { key: childSnapshot.key, value: childSnapshot.val()};
+      results.push(itemData);
+      this.byPath.set(itemData.key, itemData);
     });
+    this.resultsCount = results.length;
+    console.log(`${this.constructor.name}/${this.path}, onSnapshot, emiting value:`, results);
     this.emit("value", results);
   }
 }

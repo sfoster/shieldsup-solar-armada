@@ -1,9 +1,31 @@
 import {LitElement, html} from 'lit';
+import { RemoteList } from './collections';
 
 export class UIScene extends LitElement {
   static scenes = new Set();
   get sceneName() {
     return this.constructor.sceneName;
+  }
+  static registerScene(SceneClass) {
+    UIScene.scenes.add(SceneClass);
+    console.log("registering SceneClass", SceneClass.sceneName);
+    customElements.define(SceneClass.sceneName, SceneClass);
+  }
+  static initCollectionBackedElements(root, collections, { disabled }) {
+    const remoteBackedElements = root.querySelectorAll("[data-remoteid]");
+    console.log("remoteBackedElements:", remoteBackedElements.length);
+    remoteBackedElements.forEach(elem => {
+      if (elem.dataType == "list") {
+        elem.disabled = disabled;
+        if (!disabled) {
+          if (!collections.has(elem.id)) {
+            const collection = new RemoteList(elem.dataset.remoteid);
+            collections.set(elem.id, collection);
+            elem.setCollection(collection);
+          }
+        }
+      }
+    });
   }
   static properties = {
     hidden: {state: true},
@@ -59,8 +81,12 @@ export class UIScene extends LitElement {
       this[mname].call(this, event);
     }
   }
-  render() {
+  connectedCallback() {
+    console.log("UIScene connectedCallback:", this.constructor.name);
+    super.connectedCallback();
     this.classList.add("ui-scene");
+  }
+  render() {
     this.classList.toggle("hidden", this.hidden);
 
     return html `

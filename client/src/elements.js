@@ -22,17 +22,36 @@ export class DocumentsList extends LitElement {
     this.collection = collection;
     console.log("setCollection:", this.collection);
     this.collection.on("value", this);
+    this.disabled = false;
+  }
+  disconnectCollection() {
+    this.collection.off("value", this);
   }
   prepareViewData(results) {
-    this._viewDataList = results.map(({ key, value: docData }) => docData);
+    console.log("Got results:", results);
+    this._viewDataList = results.map(({ key, value: docData }) => {
+      return {
+        key,
+        ...docData,
+        path: `${this.collection.path}/${key}`,
+      }
+    });
+  }
+  handleEvent(event) {
+    const newEvent = new CustomEvent(`item-${event.type}`, {
+      bubbles: true,
+      composed: true,
+      detail: { ...event.target.dataset }
+    });
+    this.dispatchEvent(newEvent);
   }
   handleTopic(topic, results) {
-    console.log("Got update to my list:", results);
+    console.log("Got update to my list:", topic, results);
     this.prepareViewData(results);
     this.requestUpdate();
   }
   itemTemplate(data) {
-    return html`<li>${data.displayName}</li>`;
+    return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName}</li>`;
   }
   render() {
     return html `
@@ -51,7 +70,7 @@ export class DocumentsList extends LitElement {
         margin: 0.2em;
       }
     </style>
-    <ul class="${this.disabled ? 'disabled' : '' }">
+    <ul @click=${this} class="${this.disabled ? 'disabled' : '' }">
       ${this._viewDataList.map((data) =>
         this.itemTemplate(data)
       )}
@@ -76,15 +95,16 @@ export class DocumentItem extends HTMLElement {
 export class GamesList extends DocumentsList {
   prepareViewData(results) {
     this._viewDataList = results.map(({ key, value: docData }) => {
-      console.log("creating view-model from:", docData);
       return {
-        displayName: docData.displayName,
-        playerCount: Object.keys(docData.players).length,
-      };
+        key,
+        ...docData,
+        path: `${this.collection.path}/${key}`,
+        // displayName: docData.displayName,
+        playerCount: docData.playerCount ?? 0,
+      }
     });
   }
   itemTemplate(data) {
-    return html`<li>${data.displayName} (${data.playerCount})</li>`
+    return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName} (${data.playerCount})</li>`;
   }
 }
-

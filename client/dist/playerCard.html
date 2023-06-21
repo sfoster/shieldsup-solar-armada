@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="StyleSheet" href="./style.css">
+    <script type="module" src="./player-page.bundle.js"></script>
+    <style>
+      body.logged-in #loginBtn,
+      body.logged-in #anonLoginBtn,
+      body:not(.logged-in) #logoutBtn,
+      body:not(.logged-in) #queueBtn,
+      footer#buttons > button:disabled {
+        opacity: 0.8;
+        color: grey;
+      }
+      .logged-in {
+        border-color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <player-card>
+      The player card
+    </player-card>
+    <footer id="buttons">
+      <button id="loginBtn">Firebase Auth Login (email)</button>
+      <button id="anonLoginBtn">Firebase Auth Login (anon)</button>
+      <button id="queueBtn">Queue Me Up</button>
+      <button id="logoutBtn">Logout</button>
+    </footer>
+</body>
+</html>

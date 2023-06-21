@@ -14,6 +14,7 @@ body {
 #login.logged-in #anonLoginBtn,
 #login.validated #validateBtn,
 #login:not(.logged-in) #logoutBtn,
+#login:not(.logged-in) #queueBtn,
 #login:not(.logged-in) #validateBtn {
   opacity: 0.8;
   color: grey;
