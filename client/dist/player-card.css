@@ -21,8 +21,10 @@
   margin-block: 6px;
   margin-inline: 0;
 }
-#player-description {
+#player-description,
+#game-details {
   flex-grow: 1;
-  padding-inline: 1em;
+  padding-inline: 0;
   padding-block: 0.5em;
+  margin: 0;
 }

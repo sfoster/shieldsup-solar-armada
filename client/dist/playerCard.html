@@ -9,6 +9,7 @@
       body.logged-in #anonLoginBtn,
       body:not(.logged-in) #logoutBtn,
       body:not(.logged-in) #queueBtn,
+      body:not(.logged-in) #queueBtn,
       footer#buttons > button:disabled {
         opacity: 0.8;
         color: grey;
@@ -26,6 +27,8 @@
       <button id="loginBtn">Firebase Auth Login (email)</button>
       <button id="anonLoginBtn">Firebase Auth Login (anon)</button>
       <button id="queueBtn">Queue Me Up</button>
+      <button id="joinGameBtn" data-gameid="thenextgame">Join Game</button>
+      <button id="leaveGameBtn">Leave Game</button>
       <button id="logoutBtn">Logout</button>
     </footer>
 </body>

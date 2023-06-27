@@ -69,9 +69,16 @@ export class GameClient extends EventEmitterMixin(Object) {
     return !!this.auth?.currentUser;
   }
   get userInQueue() {
+    if (this.playerDocument.getProperty("gameId")) {
+      return false;
+    }
     const lastSeen = this.playerDocument.getProperty("lastSeen");
     const maxIntervalMs = 1000 * 60 * 5; // 5mins
     return lastSeen ? Date.now() - lastSeen <= maxIntervalMs : false;
+  }
+  get userInGame() {
+    const gameId = this.playerDocument.getProperty("gameId");
+    return !!gameId;
   }
   async onFirebaseUserAuthenticated(firebaseUser) {
     console.log("onFirebaseUserAuthenticated:", firebaseUser);
@@ -162,18 +169,29 @@ export class GameClient extends EventEmitterMixin(Object) {
     let displayName = this.playerDocument.getProperty("displayName") ?? "No-name";
     const url = this.createUrl("joinserver");
     await this._apiRequest(url, "POST", {
-      displayName
+      displayName,
+      uid: this.auth.currentUser.uid,
     });
   }
 
   async joinGame(gameId) {
+    console.log("client.joinGame, gameId:", gameId);
     this._assertNonAnonymousUser("non-anonymous logged in user required");
     let displayName = this.playerDocument.getProperty("displayName") ?? "No-name";
 
     const url = this.createUrl(`joingame/${gameId}`);
     await this._apiRequest(url, "POST", {
-      displayName
+      displayName,
+      uid: this.auth.currentUser.uid,
     });
+  }
+
+  async leaveGame() {
+    console.log("client.leaveGame, gameId:", this.playerDocument.getProperty("gameId"));
+    this._assertNonAnonymousUser("non-anonymous logged in user required");
+
+    const url = this.createUrl("leavegame");
+    await this._apiRequest(url, "POST", {});
   }
 
   async ping() {

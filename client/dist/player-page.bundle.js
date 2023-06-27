@@ -26717,9 +26717,16 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
     return !!this.auth?.currentUser;
   }
   get userInQueue() {
+    if (this.playerDocument.getProperty("gameId")) {
+      return false;
+    }
     const lastSeen = this.playerDocument.getProperty("lastSeen");
     const maxIntervalMs = 1000 * 60 * 5; // 5mins
     return lastSeen ? Date.now() - lastSeen <= maxIntervalMs : false;
+  }
+  get userInGame() {
+    const gameId = this.playerDocument.getProperty("gameId");
+    return !!gameId;
   }
   async onFirebaseUserAuthenticated(firebaseUser) {
     console.log("onFirebaseUserAuthenticated:", firebaseUser);
@@ -26810,18 +26817,29 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
     let displayName = this.playerDocument.getProperty("displayName") ?? "No-name";
     const url = this.createUrl("joinserver");
     await this._apiRequest(url, "POST", {
-      displayName
+      displayName,
+      uid: this.auth.currentUser.uid,
     });
   }
 
   async joinGame(gameId) {
+    console.log("client.joinGame, gameId:", gameId);
     this._assertNonAnonymousUser("non-anonymous logged in user required");
     let displayName = this.playerDocument.getProperty("displayName") ?? "No-name";
 
     const url = this.createUrl(`joingame/${gameId}`);
     await this._apiRequest(url, "POST", {
-      displayName
+      displayName,
+      uid: this.auth.currentUser.uid,
     });
+  }
+
+  async leaveGame() {
+    console.log("client.leaveGame, gameId:", this.playerDocument.getProperty("gameId"));
+    this._assertNonAnonymousUser("non-anonymous logged in user required");
+
+    const url = this.createUrl("leavegame");
+    await this._apiRequest(url, "POST", {});
   }
 
   async ping() {
@@ -26907,6 +26925,8 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
     hidden: {state: true},
     displayName: {},
     description: {},
+    gameName: {},
+    gameId: {},
   }
   static defaultAvatarSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' width='256' height='256' viewBox='0 0 256 256' xml:space='preserve'%3E%3Cg style='stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;' transform='translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)' %3E%3Cpath d='M 45 3 c 7.785 0 14.118 6.333 14.118 14.118 v 6.139 c 0 7.785 -6.333 14.118 -14.118 14.118 c -7.785 0 -14.118 -6.333 -14.118 -14.118 v -6.139 C 30.882 9.333 37.215 3 45 3 M 45 0 L 45 0 c -9.415 0 -17.118 7.703 -17.118 17.118 v 6.139 c 0 9.415 7.703 17.118 17.118 17.118 h 0 c 9.415 0 17.118 -7.703 17.118 -17.118 v -6.139 C 62.118 7.703 54.415 0 45 0 L 45 0 z' style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;' transform=' matrix(1 0 0 1 0 0) ' stroke-linecap='round' /%3E%3Cpath d='M 55.094 45.846 c 11.177 2.112 19.497 12.057 19.497 23.501 V 87 H 15.409 V 69.347 c 0 -11.444 8.32 -21.389 19.497 -23.501 C 38.097 47.335 41.488 48.09 45 48.09 S 51.903 47.335 55.094 45.846 M 54.639 42.727 C 51.743 44.227 48.47 45.09 45 45.09 s -6.743 -0.863 -9.639 -2.363 c -12.942 1.931 -22.952 13.162 -22.952 26.619 v 17.707 c 0 1.621 1.326 2.946 2.946 2.946 h 59.29 c 1.621 0 2.946 -1.326 2.946 -2.946 V 69.347 C 77.591 55.889 67.581 44.659 54.639 42.727 L 54.639 42.727 z' style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;' transform=' matrix(1 0 0 1 0 0) ' stroke-linecap='round' /%3E%3C/g%3E%3C/svg%3E";
   constructor() {
@@ -26967,7 +26987,6 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
     this.avatarSrc = this.constructor.defaultAvatarSrc;
     this.isAnonymous = true;
 
-    console.log("willUpdate, currentUser:", remoteUser);
     if (remoteUser) {
       this.displayName = remoteUser.isAnonymous ? "Anonymous" : remoteUser.displayName;
       this.loggedIn = true;
@@ -26975,6 +26994,7 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
       this.displayName = "(Not logged in)";
       this.loggedIn = false;
     }
+    this.gameId = this.remoteDocument?.getProperty("gameId");
   }
   static stylesheetUrl = "./player-card.css";
   render() {
@@ -26982,13 +27002,13 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
     let backgroundImageValue = `url("${this.avatarSrc.replaceAll('rgb(0,0,0)', fillColor)}"`;
     this.style.setProperty("--avatar-image", backgroundImageValue);
     this.classList.toggle("logged-in", this.loggedIn);
-
     return lit__WEBPACK_IMPORTED_MODULE_1__.html`
     <link rel="stylesheet" href=${this.constructor.stylesheetUrl} />
     <div id="avatar"></div>
     <div id="details">
       <h1 id="player-name">${this.displayName}</h1>
       <p id="player-description">${this.description}</p>
+      <p id="game-details" ?hidden="${!this.gameId}">Current game: ${this.gameId}</p>
     </div>
     `;
   }
@@ -32438,8 +32458,15 @@ window.addEventListener("DOMContentLoaded", () => {
         case "validateBtn":
           this.client.validateUser();
           return;
+        case "joinGameBtn":
+          this.client.joinGame(event.target.dataset.gameid);
+          return;
+        case "leaveGameBtn":
+          this.client.leaveGame(event.target.dataset.gameid);
+          return;
         case "queueBtn":
           this.client.enqueueUser();
+          return;
       }
     }
     handleTopic(topic, data, target) {
@@ -32448,24 +32475,30 @@ window.addEventListener("DOMContentLoaded", () => {
           document.body.classList.add("logged-in");
           document.getElementById("loginBtn").disabled = true;
           document.getElementById("anonLoginBtn").disabled = true;
-          document.getElementById("queueBtn").disabled = false;
+          document.getElementById("queueBtn").disabled = this.client.userInQueue;
+          document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
           document.getElementById("logoutBtn").disabled = false;
+          document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
           break;
         case "signedout":
           document.body.classList.remove("logged-in");
           document.getElementById("loginBtn").disabled = false;
           document.getElementById("anonLoginBtn").disabled = false;
           document.getElementById("queueBtn").disabled = true;
+          document.getElementById("joinGameBtn").disabled = true;
           document.getElementById("logoutBtn").disabled = true;
+          document.getElementById("leaveGameBtn").disabled = true;
           break;
         case "value":
           console.log("Handling value topic:", data);
           if (target == this.client.playerDocument) {
             console.log("Handling update of playerDocument:", this.client.userInQueue);
-            document.getElementById("queueBtn").disabled = this.client.userInQueue;
+            document.getElementById("queueBtn").disabled = this.client.userInGame || this.client.userInQueue;
+            document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
+            document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
           }
           break;
-      }
+        }
     }
   })(client);
   let playerCard = document.querySelector("player-card");

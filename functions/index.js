@@ -20,12 +20,11 @@ admin.initializeApp(firebaseProjectConfig);
 const db = admin.database();
 const app = express();
 
-function getCollection(path) {
-  const ref = db.ref(path);
-  console.log("Requesting:", path);
+function promiseSnapshot(pathOrRef) {
+  const ref = typeof pathOrRef == "string" ? db.ref(pathOrRef) : pathOrRef;
   return new Promise(resolve => {
     ref.once("value", (snapshot) => {
-      resolve(snapshot.val());
+      resolve(snapshot);
     });
   });
 }
@@ -114,7 +113,7 @@ app.get(
   async (req, resp) => {
     const payload = {};
     for (let collName of ["games", "users"]) {
-      const results = await getCollection(collName);
+      const results = await promiseSnapshot(collName).val();
       payload[collName] = results;
     }
     resp.json(payload);
@@ -174,26 +173,82 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
   // attach the user to this game
   console.log("handling request to join game:", req.params.gameId);
   let success = true;
-  const playerRef = ref(db, `players/${app.locals.uid}`);
-  try {
-    playerRef.update({
-      // TODO: validate this gameId: it should exist, be open etc.
-      // Could use a transaction to get the game document, write the playerId and displayName in there
-      // While also writing the gameId to the player document
-      gameId: req.params.gameId
+  let gameData;
+  let gameId = req.params.gameId;
+  const uid = app.locals.uid;
+  const playerRef = db.ref(`players/${uid}`);
+  const gameRef = db.ref(`games/${gameId}`);
+  let snapshot = await promiseSnapshot(gameRef);
+
+  if (!snapshot.exists()) {
+    const createdPromise = new Promise((resolve, reject) => {
+      gameRef.set({
+        gameId,
+        displayName: "",
+        players: {},
+        created: Date.now(),
+        complete: false
+      }, (error => {
+        if (error) reject(error);
+        else resolve(true);
+      }));
     });
-  } catch (ex) {
-    success = false;
-    console.warn("Failed to add player:", ex);
+    try {
+      await createdPromise;
+      snapshot = await promiseSnapshot(gameRef);
+    }
+    catch (ex) {
+      resp.status(512).json({ "status": "nope", ok: false, message: `Failed to create "games/${gameId}"` });
+      return;
+    }
   }
-  if (success) {
+
+  gameRef.transaction(() => {
+    // add the player to the game
+    gameRef.child("players").update({
+      [uid]: Object.assign({}, req.body.data, { uid, joined: Date.now() }),
+    });
+    // add the game to the player
+    playerRef.update({
+      gameId,
+    });
+  }).then(() => {
     resp.json({
       status: "ok",
       ok: true,
+      message: `player {uid} added to game {gameId}`,
     });
-  } else {
+  }).catch(ex => {
     resp.status(512).json({ "status": "nope", ok: false });
+  })
+});
+
+app.post("/api/leavegame", async (req, resp) => {
+  // dettach the user from their current game
+  console.log("handling request to leave game");
+  const uid = app.locals.uid;
+  let playerRef = db.ref(`players/${uid}`);
+  let playerSnapshot = await promiseSnapshot(playerRef);
+  let { gameId } = playerSnapshot.val();
+  if (!gameId) {
+    resp.status(512).json({ "status": "nope", ok: false });
+    return;
   }
+  const gameRef = db.ref(`games/${gameId}`);
+  gameRef.transaction(() => {
+    // remove the player from the game
+    gameRef.child(`players/${uid}`).remove();;
+    // remove the game from the player
+    playerRef.child("gameId").remove();
+  }).then(() => {
+    resp.json({
+      status: "ok",
+      ok: true,
+      message: `player {uid} removed from game {gameId}`,
+    });
+  }).catch(ex => {
+    resp.status(512).json({ "status": "nope", ok: false });
+  })
 });
 
 // check any update against some game logic
