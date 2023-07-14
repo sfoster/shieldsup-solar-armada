@@ -19,12 +19,14 @@ export class InitializeScene extends UIScene {
         this.statusOk(result)
       })
       .catch((err) => this.statusNotOk(err));
-  }
+    }
   async statusOk(statusData) {
+    console.log("statusOk:", statusData);
     // made a succesful request, so proceed to login page
     this.app.switchScene("login", statusData);
   }
   statusNotOk(statusResult){
+    console.log("statusNotOk:", statusData);
     if (statusResult && statusResult instanceof Error) {
       this.app.switchScene("notavailable", { heading: "Status Error", message: statusResult.message, });
     } else if (statusResult && !statusResult.ok) {

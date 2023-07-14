@@ -73,6 +73,7 @@ export class UIScene extends LitElement {
       this.removeListener(topic);
     }
     this.hidden = true;
+    console.log(`${this.sceneName} exit, hidden: ${this.hidden}, active: ${this._active}`);
   }
   handleEvent(event) {
     console.log("handleEvent:", event);
@@ -87,8 +88,6 @@ export class UIScene extends LitElement {
     this.classList.add("ui-scene");
   }
   render() {
-    this.classList.toggle("hidden", this.hidden);
-
     return html `
     <slot></slot>
     `;

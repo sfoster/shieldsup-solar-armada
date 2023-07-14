@@ -18,6 +18,7 @@ export class UIApp {
       console.log("no such scene:", this.scenes, name);
       throw new Error("Cant switch to unknown scene: " + name);
     }
+    console.log("switchScene to:", name, "from:", this.currentScene?.sceneName);
 
     if (this.previousScene) {
       this.previousScene.classList.remove("previous");
@@ -34,6 +35,7 @@ export class UIApp {
       this.previousScene.classList.add("previous");
     }
     this.currentScene = this.scenes[name];
+    this.currentScene.classList.add("current");
     this.currentScene.enter(sceneParams);
   }
   showNotification(message) {

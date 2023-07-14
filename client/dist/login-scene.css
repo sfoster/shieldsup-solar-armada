@@ -1,0 +1,10 @@
+.message-list {
+  list-style-type: none;
+  margin-block: 12px 0;
+  padding-inline: 12px;
+}
+.message-list > li {
+  border-bottom: 1px solid grey;
+  background-color: #FFFAA0;
+  padding: 5px;
+}

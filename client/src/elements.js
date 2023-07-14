@@ -54,6 +54,7 @@ export class DocumentsList extends LitElement {
     return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName}</li>`;
   }
   render() {
+    console.log("Rendering DocumentsList, ", this._viewDataList);
     return html `
     <style>
       ul {
@@ -105,6 +106,6 @@ export class GamesList extends DocumentsList {
     });
   }
   itemTemplate(data) {
-    return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName} (${data.playerCount})</li>`;
+    return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName || data.gameId} (${data.playerCount})</li>`;
   }
 }

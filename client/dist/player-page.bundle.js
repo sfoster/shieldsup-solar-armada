@@ -26525,6 +26525,7 @@ class DocumentsList extends lit__WEBPACK_IMPORTED_MODULE_0__.LitElement {
     return lit__WEBPACK_IMPORTED_MODULE_0__.html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName}</li>`;
   }
   render() {
+    console.log("Rendering DocumentsList, ", this._viewDataList);
     return lit__WEBPACK_IMPORTED_MODULE_0__.html `
     <style>
       ul {
@@ -26576,7 +26577,7 @@ class GamesList extends DocumentsList {
     });
   }
   itemTemplate(data) {
-    return lit__WEBPACK_IMPORTED_MODULE_0__.html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName} (${data.playerCount})</li>`;
+    return lit__WEBPACK_IMPORTED_MODULE_0__.html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName || data.gameId} (${data.playerCount})</li>`;
   }
 }
 
@@ -26940,12 +26941,18 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
   get descriptionElem() {
     return this.shadowRoot.querySelector("#details");
   }
+  get loginOutButton() {
+    return this.shadowRoot.querySelector("#loginOutBtn");
+  }
   get uid() {
     console.log("uid getter, currentUser:", this.client.auth.currentUser);
     this.client?.auth.currentUser.uid
   }
   get remoteDocument() {
-    return this.client.playerDocument;
+    return this.client?.playerDocument;
+  }
+  get clientLoggedIn() {
+    return !!this.client?.auth.currentUser;
   }
   configure(options={}) {
     this.client = options.client;
@@ -26967,16 +26974,26 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
       case "signedin": {
         let { uid } = this.client.auth.currentUser;
         console.log("Player got signedin message, user id:", uid);
-        this.remoteDocument.setPath(`players/${uid}`);
-        this.remoteDocument.on("value", this);
+        this.remoteDocument?.setPath(`players/${uid}`);
+        this.remoteDocument?.on("value", this);
         break;
       }
       case "signedout":
-        this.remoteDocument.off("value", this);
-        this.remoteDocument.unwatch(this);
+        this.remoteDocument?.off("value", this);
+        this.remoteDocument?.unwatch(this);
         console.log("Player got signedout message");
         this.requestUpdate();
         break;
+    }
+  }
+  handleClick(event) {
+    switch (event.target) {
+      case this.loginOutButton: {
+        if (this.loggedIn) {
+          this.client.logout();
+        }
+        break;
+      }
     }
   }
   firstUpdated() {
@@ -27004,11 +27021,17 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
     this.classList.toggle("logged-in", this.loggedIn);
     return lit__WEBPACK_IMPORTED_MODULE_1__.html`
     <link rel="stylesheet" href=${this.constructor.stylesheetUrl} />
-    <div id="avatar"></div>
-    <div id="details">
+    <div id="side-col">
+      <div id="avatar"></div>
+    </div>
+    <div id="details-col">
       <h1 id="player-name">${this.displayName}</h1>
       <p id="player-description">${this.description}</p>
       <p id="game-details" ?hidden="${!this.gameId}">Current game: ${this.gameId}</p>
+      ${this.loggedIn?
+        lit__WEBPACK_IMPORTED_MODULE_1__.html`<button id="loginOutBtn" @click="${this.handleClick}">Logout</button>`:
+        ""
+      }
     </div>
     `;
   }
@@ -27048,6 +27071,7 @@ class UIApp {
       console.log("no such scene:", this.scenes, name);
       throw new Error("Cant switch to unknown scene: " + name);
     }
+    console.log("switchScene to:", name, "from:", this.currentScene?.sceneName);
 
     if (this.previousScene) {
       this.previousScene.classList.remove("previous");
@@ -27064,6 +27088,7 @@ class UIApp {
       this.previousScene.classList.add("previous");
     }
     this.currentScene = this.scenes[name];
+    this.currentScene.classList.add("current");
     this.currentScene.enter(sceneParams);
   }
   showNotification(message) {

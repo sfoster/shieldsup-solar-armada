@@ -1,10 +1,10 @@
 // src/app.js
 import { useClient, useDatabase, RemoteObject, RemoteList } from './collections';
 import { GameClient } from './game-client';
-import { PlayerCard } from './player';
 import { DocumentItem, DocumentsList, GamesList } from './elements';
-import { UIApp } from './ui-app';
+import { PlayerCard } from './player';
 import * as scenes from './ui-scenes';
+import { UIApp } from './ui-app';
 import { LoginScene } from './login-scene';
 import { LobbyScene } from './lobby-scene';
 
@@ -41,12 +41,54 @@ function connectClient() {
   return client;
 }
 
-window.onload = function() {
-  const app = window.app = new UIApp();
+window.addEventListener("DOMContentLoaded", () => {
+  const client = connectClient(window.config);
 
-  const client = app.client = connectClient(window.config);
-  // const player = app.player = new Player(app, client);
-  console.log("Player:", player);
+  const app = window.app = new (class _UIPage extends UIApp {
+    constructor(elem, options = {}) {
+      super(elem, options);
+      console.log("_UIPage, this.options", this.options);
+      this.client = this.options.client;
+      this.client.on("signedin", this);
+      this.client.on("signedout", this);
+      this.client.playerDocument.on("value", this);
+    }
+    // registerScene(name, scene) {
+    //   this.scenes[name] = scene;
+    //   console.log("registered scene:", name, scene);
+    // }
+    // switchScene(name, sceneParams = {}) {
+    //   if (!this.scenes[name]) {
+    //     console.log("no such scene:", this.scenes, name);
+    //     throw new Error("Cant switch to unknown scene: " + name);
+    //   }
+
+    //   if (this.previousScene) {
+    //     this.previousScene.classList.remove("previous");
+    //     this.previousScene = null;
+    //   }
+    //   if (this.currentScene) {
+    //     if (this.currentScene.id.startsWith("waiting")) {
+    //       this.previousScene = this.currentScene;
+    //     }
+    //     this.currentScene.classList.remove("current");
+    //     this.currentScene.exit();
+    //   }
+    //   if (this.previousScene) {
+    //     this.previousScene.classList.add("previous");
+    //   }
+    //   this.currentScene = this.scenes[name];
+    //   this.currentScene.enter(sceneParams);
+    //   console.log("switchScene to:", name, "from:", this.previousScene?.sceneName);
+    // }
+    handleTopic(topic, data, target) {
+      console.log("handleTopic:", topic, data, target);
+    }
+  })(document.body, { client });
+
+  const playerCard = document.querySelector("player-card");
+  playerCard.configure({ app, client });
+
   const sceneArgs = {
     app, client
   };
@@ -60,9 +102,10 @@ window.onload = function() {
     sceneElem.configure({ ...sceneArgs });
     app.registerScene(sceneElem.id, sceneElem);
   }
-
   // start at the welcome screen
   requestAnimationFrame(() => {
+
+    console.log("Entry point, switching to 'welcome' scene");
     app.switchScene("welcome");
   });
-};
+});

@@ -5,6 +5,13 @@
     <link rel="StyleSheet" href="./style.css">
     <script type="module" src="./player-page.bundle.js"></script>
     <style>
+      body {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        padding: 10px;
+        background-color: lightgray;
+      }
       body.logged-in #loginBtn,
       body.logged-in #anonLoginBtn,
       body:not(.logged-in) #logoutBtn,
@@ -20,10 +27,10 @@
     </style>
   </head>
   <body>
-    <player-card>
+    <player-card class="ui-box">
       The player card
     </player-card>
-    <footer id="buttons">
+    <footer id="buttons" class="ui-box">
       <button id="loginBtn">Firebase Auth Login (email)</button>
       <button id="anonLoginBtn">Firebase Auth Login (anon)</button>
       <button id="queueBtn">Queue Me Up</button>

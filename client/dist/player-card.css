@@ -1,24 +1,30 @@
 :host {
-  display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   border: 1px solid grey;
   padding: 6px;
   margin-block: 0 0.5em;
 }
+#side-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-basis: 96px;
+}
+#details-col {
+  padding-inline: 10px 6px;
+}
 #avatar {
+  margin-block: 10px;
   width: 64px;
   height: 64px;
-  background: transparent no-repeat center;
-  background-size: 48px;
-  flex-basis: 64px;
-}
-:host #avatar {
+  background: no-repeat center;
+  background-size: cover;
   background-image: var(--avatar-image);
 }
 #player-name {
   font-size: 1.1em;
-  margin-block: 6px;
+  margin-block: 0;
   margin-inline: 0;
 }
 #player-description,
@@ -27,4 +33,12 @@
   padding-inline: 0;
   padding-block: 0.5em;
   margin: 0;
+}
+#loginOutBtn {
+  height: 32px;
+  border-radius: 4px;
+  background: no-repeat center;
+}
+#loginOutBtn:hover {
+  border: 1px solid #999;
 }

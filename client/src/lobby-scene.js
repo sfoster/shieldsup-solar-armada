@@ -11,13 +11,13 @@ export class LobbyScene extends UIScene {
   enter(params = {}) {
     console.log("LobbyScene, got params", params);
     super.enter(params);
-    const { loggedIn } = this.client;
-    console.log("Entered lobby scene, loggedIn:", loggedIn);
+    const { userLoggedIn } = this.client;
+    console.log("Entered lobby scene, hidden:", this.hidden, userLoggedIn);
 
     requestAnimationFrame(() => {
-      UIScene.initCollectionBackedElements(this.shadowRoot, this.collections, { disabled: !loggedIn });
-      this.requestUpdate();
-    })
+      UIScene.initCollectionBackedElements(this, this.collections, { disabled: !userLoggedIn });
+      console.log("Entered lobby scene, rAF, hidden:", this.hidden);
+    });
 
     this.addEventListener("item-click", this);
     // const gamesCollection = this.collections.get("games-list");
@@ -48,17 +48,21 @@ export class LobbyScene extends UIScene {
     }
   }
   get gamesList() {
-    return this.shadowRoot.querySelector("games-list");
+    return this.querySelector("games-list");
   }
   get playersList() {
-    return this.shadowRoot.querySelector("players-list");
+    return this.querySelector("players-list");
   }
   render() {
+    console.log(`${this.sceneName}, render(), active? ${this._active}`);
+    if (!this._active) {
+      return html`
+        <slot></slot>
+      `;
+    }
     console.log("LobbyScene render");
     return html`
       <slot></slot>
-      <games-list id="games-list" data-remoteid="games"></games-list>
-      <doc-list id="players-list" data-remoteid="players"></doc-list>
     `;
   }
 }

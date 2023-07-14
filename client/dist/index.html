@@ -4,64 +4,63 @@
     <meta charset="UTF-8">
     <link rel="StyleSheet" href="./style.css">
     <script type="module" src="./app.bundle.js"></script>
+    <script src="./aframe.js"></script>
+    <!-- physics and other extras -->
+    <script src="./aframe-extras.js"></script>
   </head>
   <body>
-    <template id="scenes-template">
+    <a-scene>
+      <a-assets>
+        <img id="sky" src="./assets/stars.png">
+      </a-assets>
+      <a-sky
+        id="sky"
+        src="#sky"
+      ></a-sky>
+    </a-scene>
+    <section id="ui-layer">
+      <player-card class="ui-box hidden">
+        <!-- The player card -->
+      </player-card>
 
-    </template>
-    <initialize-scene id="welcome">
-      <h1>Welcome</h1>
-      <p>Waiting...</p>
-    </initialize-scene>
-    <login-scene id="login">
-      <h1>Login</h1>
-      <form>
-        <section id="user-panel">
-          <user-info></user-info>
-        </section>
-        <p>
-          <button id="loginBtn">Firebase Auth Login (email)</button>
-          <button id="anonLoginBtn">Firebase Auth Login (anon)</button>
-          <button id="queueBtn">Queue Me Up</button>
-          <button id="logoutBtn">Logout</button>
-          <!--button id="validateBtn" disabled>Validate</button -->
-        </p>
-        <p>
-          <label for="no-override"><input type="radio" name="override-url" id="no-override" checked value="">No override</label>
-          <label for="unauthorized-override"><input type="radio" name="override-url" id="unauthorized-override" value="/api/unauthorized">401 Unauthorized</label>
-          <label for="forbidden-override"><input type="radio" name="override-url" id="forbidden-override" value="/api/forbidden">403 Forbidden</label>
-        </p>
-        <games-list id="games-list" data-remoteid="games"></games-list>
-        <doc-list id="users-list" data-remoteid="players"></doc-list>
-        <hr>
-        <section>
-          <h4 id="datalabel"></h4>
-          <textarea id="datainput" style="width:80%; height: 10rem"></textarea>
-          <p><button id="gameUpdateBtn" data-action="api-request">PUT data</button></p>
-        </section>
-      </form>
-    </login-scene>
-    <lobby-scene id="lobby">
-      <h1>Lobby</h1>
-      <div id="lobby-content"></div>
-    </lobby-scene>
-    <game-scene id="game">
-      <h1>The Game</h1>
-      <p>Content goes here</p>
-    </game-scene>
-    <goodbye-scene id="goodbye">
-      <h1 class="heading">Goodbye</h1>
-      <div class="message">
+      <initialize-scene id="welcome" class="ui-scene">
+        <h1>Welcome</h1>
+        <p>Waiting...</p>
+      </initialize-scene>
+      <login-scene id="login" class="ui-box ui-scene">
+      </login-scene>
+      <lobby-scene id="lobby" class="ui-box ui-scene">
+        <h1 class="hidden">Lobby</h1>
+        <div id="lobby-content">
+          <details open>
+            <summary>Games</summary>
+            <games-list id="games-list" data-remoteid="games"></games-list>
+          </details>
+          <details>
+            <summary>Players</summary>
+            <doc-list id="users-list" data-remoteid="players"></doc-list>
+          </details>
+        </div>
+      </lobby-scene>
+      <game-scene id="game" class="ui-scene">
+        <h1>The Game</h1>
         <p>Content goes here</p>
-      </div>
-    </goodbye-scene>
-    <notavailable-scene id="notavailable">
-      <h1 class="heading">Not Available</h1>
-      <div class="message">
-        <p>Content goes here</p>
-      </div>
-    </notavailable-scene>
-    <footer id="">
+      </game-scene>
+      <goodbye-scene id="goodbye" class="ui-scene">
+        <h1 class="heading">Goodbye</h1>
+        <div class="message">
+          <p>Content goes here</p>
+        </div>
+      </goodbye-scene>
+      <notavailable-scene id="notavailable" class="ui-scene">
+        <h1 class="heading">Not Available</h1>
+        <div class="message">
+          <p>Content goes here</p>
+        </div>
+      </notavailable-scene>
+    </section>
+
+    <footer id="ui-footer">
       <ul id="messages"></ul>
     </footer>
   </body>

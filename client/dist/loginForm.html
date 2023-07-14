@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="StyleSheet" href="./style.css">
+    <link rel="StyleSheet" href="./login-form.css">
+    <script type="module" src="./player-page.bundle.js"></script>
+    <style>
+      body.logged-in #loginBtn,
+      body.logged-in #anonLoginBtn,
+      body:not(.logged-in) #logoutBtn,
+      body:not(.logged-in) #queueBtn,
+      body:not(.logged-in) #queueBtn,
+      footer#buttons > button:disabled {
+        opacity: 0.8;
+      }
+      .logged-in {
+        border-color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <player-card>
+      The player card
+    </player-card>
+    <section class="ui-box">
+      <div class="form-container">
+        <p class="form-row">
+          <label for="username">Username</label>
+          <input type="text" placeholder="Email or name" id="username">
+        </p>
+        <p class="form-row">
+          <label for="password">Password</label>
+          <input type="password" placeholder="Password" id="password">
+        </p>
+        <div class="toolbar">
+          <button id="loginBtn" hidden>Firebase Auth Login (email)</button>
+          <button id="logoutBtn" hidden>Logout</button>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

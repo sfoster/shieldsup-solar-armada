@@ -1,3 +1,8 @@
+html, body {
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
 body {
   font-family: Inter,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
   background-color: #eee;
@@ -5,6 +10,15 @@ body {
 }
 .hidden {
   display: none;
+}
+#ui-layer {
+  position: absolute;
+  z-index: 1;
+  top: 20px; bottom: 20px; left: 20px; right: 20px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
 }
 .scene-ui:not(.hidden) {
   display: block;
@@ -19,15 +33,34 @@ body {
   opacity: 0.8;
   color: grey;
 }
-user-info {
-  border: 1px solid grey;
-  display: block;
-  padding: 1em;
+player-card.ui-box {
   display: flex;
 }
-user-info.logged-in {
+player-card {
+  transition-delay: 250ms;
+  transition-property: opacity;
+  transition-duration: 300ms;
+  opacity: 1;
+}
+player-card.hidden {
+  opacity: 0;
+}
+player-card.logged-in {
   border-color: #666;
 }
-user-info.validated {
+player-card.validated {
   border-color: #000;
+}
+.ui-scene {
+  display: none;
+}
+.ui-scene.current {
+  display: block;
+}
+.ui-box {
+  width: 24em;
+  background-color: rgba(255,255,255,0.8);
+  padding: 10px;
+  border: 1px solid grey;
+  border-radius: 8px;
 }
