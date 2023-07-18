@@ -13,20 +13,35 @@ export class InitializeScene extends UIScene {
     this.checkConditions();
   }
   checkConditions() {
-    this.client.ping()
-      .then((result) => {
-        // we got a successful response so we're at least connected
-        this.statusOk(result)
-      })
-      .catch((err) => this.statusNotOk(err));
-    }
+    this.client.initializingPromise.then(() => {
+      if (!this.client.connected) {
+        // no user, go straight to login
+        console.log("checkConditions, auth request in-flight?", this.client.auth?.currentUser);
+        return this.statusOk({ status: "Login needed" });
+      }
+      this.client.ping().then(result => {
+        return this.statusOk(result);
+      }).catch(result => {
+        switch (result.code) {
+          case 401:
+            // no credentials received
+            return this.statusOk(result);
+          case 403:
+            // credentials received, but they didn't provide access
+            return this.statusOk(result);
+          default:
+            return this.statusNotOk(result);
+        }
+      });
+    });
+  }
   async statusOk(statusData) {
     console.log("statusOk:", statusData);
     // made a succesful request, so proceed to login page
     this.app.switchScene("login", statusData);
   }
   statusNotOk(statusResult){
-    console.log("statusNotOk:", statusData);
+    console.log("statusNotOk:", statusResult);
     if (statusResult && statusResult instanceof Error) {
       this.app.switchScene("notavailable", { heading: "Status Error", message: statusResult.message, });
     } else if (statusResult && !statusResult.ok) {

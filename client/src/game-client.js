@@ -46,15 +46,22 @@ export class GameClient extends EventEmitterMixin(Object) {
     console.log("in _Client.init");
     this.auth = getAuth(firebaseApp);
     connectAuthEmulator(this.auth, "http://localhost:9099");
-    onAuthStateChanged(this.auth, (firebaseUser) => {
-      console.log("onAuthStateChanged:", firebaseUser);
-      if (firebaseUser) {
-        this.onFirebaseUserAuthenticated(firebaseUser);
-      } else {
-        this.onFirebaseUserLogout();
-      }
-    });
-    this.documents.set("_player_", new RemoteObject());
+    this.initializingPromise = new Promise((resolve, reject) => {
+      onAuthStateChanged(this.auth, async (firebaseUser) => {
+        try {
+          console.log("onAuthStateChanged:", firebaseUser);
+          if (firebaseUser) {
+            await this.onFirebaseUserAuthenticated(firebaseUser);
+          } else {
+            this.onFirebaseUserLogout();
+          }
+          resolve(true);
+        } catch (ex) {
+          reject(ex);
+        }
+      });
+      this.documents.set("_player_", new RemoteObject());
+    })
   }
   createUrl(resourcePath) {
     return `${this.overrideUrl ?? this.urlPrefix}/${resourcePath}`;
@@ -201,10 +208,22 @@ export class GameClient extends EventEmitterMixin(Object) {
 
   async _apiRequest(url, method, payload) {
     let resp;
-    let body = method == "GET" ? undefined : JSON.stringify({
-      data: payload,
-      credential: `token=${this.firebaseUserAuthIdToken}`,
-    });
+    let body;
+    if (method == "GET") {
+      // pass the token in the querystring
+      let _url = new URL(url, window.location.href);
+      let qsparams = new URLSearchParams(_url.search.slice(1));
+      qsparams.set("token", this.firebaseUserAuthIdToken);
+      _url.search = `?${qsparams}`;
+      console.log("GET request, created url with querystring:", _url);
+      url = _url.toString();
+    } else {
+      // pass the token in the request body
+      body = JSON.stringify({
+        data: payload,
+        credential: `token=${this.firebaseUserAuthIdToken}`,
+      });
+    }
     console.log(`Sending request to update: ${url} with request body:`, body);
     try {
       resp = await fetch(url, {
@@ -213,7 +232,6 @@ export class GameClient extends EventEmitterMixin(Object) {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        // TODO: Use Authorization header or add the token into this request envelope?
         body,
       });
     } catch (ex) {

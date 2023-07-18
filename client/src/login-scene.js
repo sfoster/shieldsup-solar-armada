@@ -49,7 +49,11 @@ export class LoginScene extends UIScene {
     }
     document.querySelector("player-card").classList.remove("hidden");
     if (params?.status) {
-      this.displayStatus(params?.status);
+        // only display unauthorized message if its unexpected
+        if (!this.client.auth.currentUser && params.status == "unauthorized") {
+          return;
+        }
+        this.displayStatus(params?.status);
     }
   }
   exit() {
@@ -68,11 +72,14 @@ export class LoginScene extends UIScene {
     switch (topic) {
       case "signedin": {
         this.signedIn = true;
+        this.statusMessages.length = 0;
+        this.displayStatus("Firebase user signed in");
         console.log("Client signedin, got data:", data);
         break;
       }
       case "signedout": {
         this.signedIn = false;
+        this.displayStatus("Firebase user signed out");
         console.log("Client signed out");
         break;
       }
@@ -125,7 +132,7 @@ export class LoginScene extends UIScene {
     event.stopPropagation();
   }
   displayStatus(statusValue) {
-    let messages = this.statusMessages.slice(0, 3);
+    let messages = this.statusMessages.slice(0, 1);
     this.statusMessages = [statusValue, ...messages];
   }
   render() {

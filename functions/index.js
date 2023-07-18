@@ -50,33 +50,33 @@ function documentRefChange(ref, method, theData) {
 }
 
 function checkAuth(req, resp, next) {
-  let authorized = false;
   // NB: ID token verification requires a project ID.
   // https://firebase.google.com/docs/auth/admin/verify-id-tokens
-  let credential = req.headers.authorization;
-  if (!credential && req.body && req.body.credential) {
-    credential = req.body.credential;
-  }
-  console.log("checkAuth, trying credential:", credential);
+  let credential = req.headers.authorization ?? req.body?.credential;
+  let idToken;
   if (credential) {
     let nameValue = credential.split(/;\s*/).find(part => part.startsWith("token="));
-    const [_,idToken] = (nameValue || "").split("=");
-    if (idToken) {
-      const firebaseAuth = getAuth();
-      firebaseAuth.verifyIdToken(idToken)
-      .then((decodedToken) => {
-        app.locals.uid = decodedToken.uid;
-        console.log("idToken verified, uid:", app.locals.uid);
-        next();
-      })
-      .catch(error => {
-        console.warn("error verifying token:", error);
-        resp.status(401).json({ "status": "token-revoked", "ok": false });
-      });
-      return;
-    }
+    const [_,token] = (nameValue || "").split("=");
+    idToken = token;
+  } else if(req.params.token) {
+    idToken = req.params.token;
   }
-  resp.status(403).json({ "status": "unauthorized", "ok": false });
+  if (!idToken) {
+    return resp.status(401).json({ "status": "no token found", "ok": false });
+  }
+
+  console.log("checkAuth, trying with token:", idToken);
+  const firebaseAuth = getAuth();
+  firebaseAuth.verifyIdToken(idToken)
+    .then((decodedToken) => {
+      app.locals.uid = decodedToken.uid;
+      console.log("idToken verified, uid:", app.locals.uid);
+      next();
+    })
+    .catch(error => {
+      console.warn("error verifying token:", error);
+      resp.status(403).json({ "status": "token-revoked", "ok": false });
+    });
 }
 
 function checkProposedChange(req, resp, next) {
