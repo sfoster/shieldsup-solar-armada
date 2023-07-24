@@ -91,6 +91,7 @@ export class GameClient extends EventEmitterMixin(Object) {
     console.log("onFirebaseUserAuthenticated:", firebaseUser);
     console.assert(this.auth.currentUser == firebaseUser, "user arg is auth's currentUser");
     this.firebaseUserAuthIdToken = await firebaseUser.getIdToken();
+    // document.cookie = "token=" + token;
     this.connected = true;
     this.emit("signedin", { todo: "Some properties needed here?" });
   }
@@ -208,6 +209,7 @@ export class GameClient extends EventEmitterMixin(Object) {
 
   async _apiRequest(url, method, payload) {
     let resp;
+    let requestError;
     let body;
     if (method == "GET") {
       // pass the token in the querystring
@@ -236,8 +238,13 @@ export class GameClient extends EventEmitterMixin(Object) {
       });
     } catch (ex) {
       console.warn("fetch promise rejected:", ex);
+      requestError = ex;
     }
     console.log("Handling fetch response with status:", resp.status, resp.statusText, resp);
+    if (!resp) {
+      this.emit("request/failure", requestError);
+      return;
+    }
     let result;
     try {
       result = await resp.json();

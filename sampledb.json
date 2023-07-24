@@ -11,11 +11,19 @@
     }
   },
   "games": {
-    "thelatest": {
-      "displayName": "Default Latest Game"
+    "thenextgame": {
+      "gameId": "thenextgame",
+      "displayName": "The Next Game",
+      "players": {},
+      "created": 1689945491717,
+      "complete": false
     },
     "yesterdays": {
-      "displayName": "Yesterday's Game"
+      "gameId": "yesterdays",
+      "displayName": "Yesterday's Game",
+      "players": {},
+      "created": 1689859204831,
+      "complete": true
     }
   }
 }

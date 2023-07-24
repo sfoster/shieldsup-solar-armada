@@ -13,15 +13,27 @@ export class InitializeScene extends UIScene {
     this.checkConditions();
   }
   checkConditions() {
+    /*
+     * once the client is initialized, go direct to the login form if we have no firebase currentUser
+     * If we do have a user, authenticate them at the server
+     * We'll go to the login form in success and failure case for now in lieu of a player info screen
+     * so the user can update display name, avatar etc before joining a game
+    */
+    console.log("InitiializeScene#checkConditions, waiting for client.initializingPromise");
     this.client.initializingPromise.then(() => {
+      console.log("InitiializeScene#checkConditions, client.initializingPromise resolved, client", this.client);
       if (!this.client.connected) {
+        console.log("InitiializeScene#checkConditions, not connected, calling statusOk");
         // no user, go straight to login
         console.log("checkConditions, auth request in-flight?", this.client.auth?.currentUser);
         return this.statusOk({ status: "Login needed" });
       }
+      console.log("InitiializeScene#checkConditions, connected, calling ping()");
       this.client.ping().then(result => {
+        console.log("InitiializeScene#checkConditions, calling ping() resolved, got result:", result);
         return this.statusOk(result);
       }).catch(result => {
+        console.log("InitiializeScene#checkConditions, calling ping() errback, got result:", result);
         switch (result.code) {
           case 401:
             // no credentials received

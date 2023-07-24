@@ -56,6 +56,7 @@ export class UIScene extends LitElement {
     this.ownerDocument.removeEventListener(name, this);
   }
   enter(params = {}) {
+    this._exitTasks = [];
     this._active = true;
     if (params.client) {
       this.client = params.client;
@@ -71,6 +72,10 @@ export class UIScene extends LitElement {
     this._active = false;
     for (let topic of this._topics){
       this.removeListener(topic);
+    }
+    let taskFn;
+    while (taskFn = this._exitTasks?.pop()) {
+      taskFn();
     }
     this.hidden = true;
     console.log(`${this.sceneName} exit, hidden: ${this.hidden}, active: ${this._active}`);

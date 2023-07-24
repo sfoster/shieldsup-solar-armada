@@ -53,34 +53,6 @@ window.addEventListener("DOMContentLoaded", () => {
       this.client.on("signedout", this);
       this.client.playerDocument.on("value", this);
     }
-    // registerScene(name, scene) {
-    //   this.scenes[name] = scene;
-    //   console.log("registered scene:", name, scene);
-    // }
-    // switchScene(name, sceneParams = {}) {
-    //   if (!this.scenes[name]) {
-    //     console.log("no such scene:", this.scenes, name);
-    //     throw new Error("Cant switch to unknown scene: " + name);
-    //   }
-
-    //   if (this.previousScene) {
-    //     this.previousScene.classList.remove("previous");
-    //     this.previousScene = null;
-    //   }
-    //   if (this.currentScene) {
-    //     if (this.currentScene.id.startsWith("waiting")) {
-    //       this.previousScene = this.currentScene;
-    //     }
-    //     this.currentScene.classList.remove("current");
-    //     this.currentScene.exit();
-    //   }
-    //   if (this.previousScene) {
-    //     this.previousScene.classList.add("previous");
-    //   }
-    //   this.currentScene = this.scenes[name];
-    //   this.currentScene.enter(sceneParams);
-    //   console.log("switchScene to:", name, "from:", this.previousScene?.sceneName);
-    // }
     handleTopic(topic, data, target) {
       console.log("handleTopic:", topic, data, target);
     }

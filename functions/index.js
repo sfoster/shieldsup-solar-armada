@@ -75,7 +75,7 @@ function checkAuth(req, resp, next) {
     })
     .catch(error => {
       console.warn("error verifying token:", error);
-      resp.status(403).json({ "status": "token-revoked", "ok": false });
+      resp.status(401).json({ "status": "token-revoked", "ok": false });
     });
 }
 
@@ -181,6 +181,7 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
   let snapshot = await promiseSnapshot(gameRef);
 
   if (!snapshot.exists()) {
+    console.log("no such game, creating it:", req.params.gameId);
     const createdPromise = new Promise((resolve, reject) => {
       gameRef.set({
         gameId,
@@ -203,22 +204,31 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
     }
   }
 
+  console.log("starting the join-game transaction");
   gameRef.transaction(() => {
-    // add the player to the game
-    gameRef.child("players").update({
-      [uid]: Object.assign({}, req.body.data, { uid, joined: Date.now() }),
-    });
+    gameData = snapshot.val();
+    console.log("join game, gameData:", gameData);
+
     // add the game to the player
+    console.log(`Add ${gameId} to player`);
     playerRef.update({
       gameId,
     });
+    // add the player to the game
+    console.log(`Add ${uid} to game/players`);
+    gameRef.child("players").update({
+      [uid]: Object.assign({}, req.body.data, { uid, joined: Date.now() }),
+    });
+    console.log(`transaction done`);
   }).then(() => {
+    console.log(`transaction promise resolved, responding with status:ok`);
     resp.json({
       status: "ok",
       ok: true,
-      message: `player {uid} added to game {gameId}`,
+      message: `player ${uid} added to game ${gameId}`,
     });
   }).catch(ex => {
+    console.log(`transaction promise rejected, responding with 512`);
     resp.status(512).json({ "status": "nope", ok: false });
   })
 });
@@ -227,6 +237,7 @@ app.post("/api/leavegame", async (req, resp) => {
   // dettach the user from their current game
   console.log("handling request to leave game");
   const uid = app.locals.uid;
+  let gameData;
   let playerRef = db.ref(`players/${uid}`);
   let playerSnapshot = await promiseSnapshot(playerRef);
   let { gameId } = playerSnapshot.val();
@@ -235,9 +246,11 @@ app.post("/api/leavegame", async (req, resp) => {
     return;
   }
   const gameRef = db.ref(`games/${gameId}`);
+  let snapshot = await promiseSnapshot(gameRef);
   gameRef.transaction(() => {
+    gameData = snapshot.val();
     // remove the player from the game
-    gameRef.child(`players/${uid}`).remove();;
+    gameRef.child(`players/${uid}`).remove();
     // remove the game from the player
     playerRef.child("gameId").remove();
   }).then(() => {

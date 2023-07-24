@@ -43,7 +43,9 @@ export class LoginScene extends UIScene {
       UIScene.initCollectionBackedElements(this, this.collections, { disabled: false });
     }
     this.client.playerDocument.on("value", this);
-
+    this._exitTasks.push(() => {
+      this.client.playerDocument.off("value", this);
+    });
     for (let topic of this.clientTopics) {
       this.client.on(topic, this);
     }
@@ -104,8 +106,9 @@ export class LoginScene extends UIScene {
   }
 
   onClick(event) {
-    console.log("clicked on:", event.originalTarget.id);
-    switch (event.originalTarget.id) {
+    let targetId = (event.originalTarget || event.target).id;
+    console.log("clicked on:", targetId);
+    switch (targetId) {
       case "loginBtn": {
         let uname = this.shadowRoot.querySelector("#username").value;
         let pword = this.shadowRoot.querySelector("#password").value;

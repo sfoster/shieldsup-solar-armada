@@ -26566,15 +26566,20 @@ class DocumentItem extends HTMLElement {
 
 class GamesList extends DocumentsList {
   prepareViewData(results) {
-    this._viewDataList = results.map(({ key, value: docData }) => {
-      return {
+    let viewData = [];
+    for (let keyValue of results) {
+      let { key, value: docData } = keyValue;
+      let viewModel = {
         key,
         ...docData,
         path: `${this.collection.path}/${key}`,
         // displayName: docData.displayName,
-        playerCount: docData.playerCount ?? 0,
-      }
-    });
+        playerCount: docData.players ? Object.keys(docData.players).length : 0,
+      };
+      console.log("prepared gameslist item viewModel:", viewModel);
+      viewData.push(viewModel);
+    }
+    this._viewDataList = viewData;
   }
   itemTemplate(data) {
     return lit__WEBPACK_IMPORTED_MODULE_0__.html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName || data.gameId} (${data.playerCount})</li>`;
@@ -26740,6 +26745,7 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
     console.log("onFirebaseUserAuthenticated:", firebaseUser);
     console.assert(this.auth.currentUser == firebaseUser, "user arg is auth's currentUser");
     this.firebaseUserAuthIdToken = await firebaseUser.getIdToken();
+    // document.cookie = "token=" + token;
     this.connected = true;
     this.emit("signedin", { todo: "Some properties needed here?" });
   }
@@ -26857,6 +26863,7 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
 
   async _apiRequest(url, method, payload) {
     let resp;
+    let requestError;
     let body;
     if (method == "GET") {
       // pass the token in the querystring
@@ -26885,8 +26892,13 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
       });
     } catch (ex) {
       console.warn("fetch promise rejected:", ex);
+      requestError = ex;
     }
     console.log("Handling fetch response with status:", resp.status, resp.statusText, resp);
+    if (!resp) {
+      this.emit("request/failure", requestError);
+      return;
+    }
     let result;
     try {
       result = await resp.json();

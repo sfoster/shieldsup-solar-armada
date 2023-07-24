@@ -95,15 +95,20 @@ export class DocumentItem extends HTMLElement {
 
 export class GamesList extends DocumentsList {
   prepareViewData(results) {
-    this._viewDataList = results.map(({ key, value: docData }) => {
-      return {
+    let viewData = [];
+    for (let keyValue of results) {
+      let { key, value: docData } = keyValue;
+      let viewModel = {
         key,
         ...docData,
         path: `${this.collection.path}/${key}`,
         // displayName: docData.displayName,
-        playerCount: docData.playerCount ?? 0,
-      }
-    });
+        playerCount: docData.players ? Object.keys(docData.players).length : 0,
+      };
+      console.log("prepared gameslist item viewModel:", viewModel);
+      viewData.push(viewModel);
+    }
+    this._viewDataList = viewData;
   }
   itemTemplate(data) {
     return html`<li data-key="${data.key}" data-path="${data.path}">${data.displayName || data.gameId} (${data.playerCount})</li>`;
