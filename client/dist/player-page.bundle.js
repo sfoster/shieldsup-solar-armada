@@ -26306,6 +26306,80 @@ function __classPrivateFieldIn(state, receiver) {
 
 /***/ }),
 
+/***/ "./src/aframe-helpers.js":
+/*!*******************************!*\
+  !*** ./src/aframe-helpers.js ***!
+  \*******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "addAssets": () => (/* binding */ addAssets),
+/* harmony export */   "addEntities": () => (/* binding */ addEntities)
+/* harmony export */ });
+function addAssets(assetsList, sceneElem) {
+  console.log("addAssets:", assetsList);
+  if (!sceneElem) {
+    sceneElem = document.querySelector("a-scene");
+  }
+  let frag = document.createDocumentFragment();
+  console.log("adding scene assets:", assetsList);
+  // assets
+  for (let assetInfo of assetsList) {
+    let elem = document.createElement("a-assets-item");
+    for (let [name, value] of Object.entries(assetInfo)) {
+      elem.setAttribute(name, value);
+    }
+    frag.appendChild(elem);
+  }
+  let assetElem = sceneElem.querySelector("a-assets");
+  if (!assetElem) {
+    assetElem = document.createElement("a-assets");
+    sceneElem.prepend(assetElem);
+  }
+  assetElem.appendChild(frag);
+}
+
+function addEntities(entityList, sceneElem) {
+  console.log("addEntities:", entityList);
+  if (!sceneElem) {
+    sceneElem = document.querySelector("a-scene");
+  }
+  let fragment = document.createDocumentFragment();
+  let excludeAttributeProperties = new Set(["a-type", "a-path", "_depth"])
+
+  for (let entity of entityList) {
+    let elem = document.createElement("a-" + entity["a-type"]);
+    let parentNode;
+    if (entity.parentId) {
+      // try the fragment first
+      parentNode = fragment.getElementById(entity.parentId);
+      if (!parentNode) {
+        parentNode = document.getElementById(entity.parentId);
+      }
+      if (!parentNode) {
+        console.warn("Missing parentNode for child", entity["a-path"], entity.parentId);
+        continue;
+      }
+    } else {
+      parentNode = fragment;
+    }
+    for (let [name, value] of Object.entries(entity)) {
+      if (excludeAttributeProperties.has(name)) {
+        continue;
+      }
+      elem.setAttribute(name, value);
+    }
+    parentNode.appendChild(elem);
+  }
+  if (fragment.childElementCount) {
+    sceneElem.appendChild(fragment);
+  }
+}
+
+
+/***/ }),
+
 /***/ "./src/collections.js":
 /*!****************************!*\
   !*** ./src/collections.js ***!
@@ -26337,10 +26411,6 @@ class RemoteObject extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_0__.EventE
   constructor(path) {
     super();
     this._path = path;
-    // Object.defineProperty(this, 'dbRef', {
-    //   value: db ? ref(db, this.path) : null,
-    //   writable: false
-    // });
   }
   get dbRef() {
     return db ? (0,firebase_database__WEBPACK_IMPORTED_MODULE_1__.ref)(db, this.path) : null;
@@ -26403,7 +26473,7 @@ class RemoteList extends RemoteObject {
     });
     this.resultsCount = results.length;
     console.log(`${this.constructor.name}/${this.path}, onSnapshot, emiting value:`, results);
-    this.emit("value", results);
+    this.emit("value", results, this);
   }
 }
 
@@ -26859,6 +26929,14 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
   async ping() {
     const url = this.createUrl("hello");
     return this._apiRequest(url, "GET");
+  }
+
+  async importScene(sceneId, data) {
+    this._assertNonAnonymousUser("non-anonymous logged in user required");
+    console.log("Will import:", sceneId, data);
+
+    const url = this.createUrl(`import/${sceneId}`);
+    await this._apiRequest(url, "POST", data);
   }
 
   async _apiRequest(url, method, payload) {
@@ -32456,9 +32534,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _ui_app__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ui-app */ "./src/ui-app.js");
 /* harmony import */ var _player__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./player */ "./src/player.js");
 /* harmony import */ var _elements__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./elements */ "./src/elements.js");
-/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./config */ "./src/config.js");
-/* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
-/* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
+/* harmony import */ var _aframe_helpers__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./aframe-helpers */ "./src/aframe-helpers.js");
+/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./config */ "./src/config.js");
+/* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
+/* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
 
 
 
@@ -32470,14 +32549,15 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_6__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_5__.firebaseConfig);
-const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.getDatabase)(firebaseApp, `http://localhost:9000/?ns=${_config__WEBPACK_IMPORTED_MODULE_5__.firebaseConfig.projectId}`);
+
+const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_6__.firebaseConfig);
+const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_8__.getDatabase)(firebaseApp, `http://localhost:9000/?ns=${_config__WEBPACK_IMPORTED_MODULE_6__.firebaseConfig.projectId}`);
 (0,_collections__WEBPACK_IMPORTED_MODULE_0__.useDatabase)(db);
 
-if (_config__WEBPACK_IMPORTED_MODULE_5__.inEmulation) {
+if (_config__WEBPACK_IMPORTED_MODULE_6__.inEmulation) {
   // Point to the RTDB emulator running on localhost.
-  console.log("Connecting database emulator", _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.port);
-  (0,firebase_database__WEBPACK_IMPORTED_MODULE_7__.connectDatabaseEmulator)(db, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_5__.firebaseEmulators.database.port);
+  console.log("Connecting database emulator", _config__WEBPACK_IMPORTED_MODULE_6__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_6__.firebaseEmulators.database.port);
+  (0,firebase_database__WEBPACK_IMPORTED_MODULE_8__.connectDatabaseEmulator)(db, _config__WEBPACK_IMPORTED_MODULE_6__.firebaseEmulators.database.host, _config__WEBPACK_IMPORTED_MODULE_6__.firebaseEmulators.database.port);
 }
 
 function connectClient() {
@@ -32497,10 +32577,28 @@ window.addEventListener("DOMContentLoaded", () => {
       this.client.on("signedin", this);
       this.client.on("signedout", this);
       this.client.playerDocument.on("value", this);
+      document.getElementById("scene-picker").addEventListener("change", this);
     }
     handleEvent(event) {
-      console.log("handling click on target:", event.target);
+      if (!event.target.id) {
+        return;
+      }
+      if (event.target.id == "scene-picker") {
+      }
       switch (event.target.id) {
+        case "scene-picker": {
+          if (event.type !== "change") {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          let sceneId = event.target.value;
+          console.log("scene-picker change:", sceneId);
+          if (sceneId && this.client.auth.currentUser) {
+            this.selectScene(sceneId);
+          }
+          return;
+        }
         case "loginBtn":
           this.client.login("test@example.com", "testy1");
           return;
@@ -32522,6 +32620,24 @@ window.addEventListener("DOMContentLoaded", () => {
         case "queueBtn":
           this.client.enqueueUser();
           return;
+        case "importBtn": {
+          console.log("handling importBtn click");
+          let sceneId = document.querySelector("#importSceneId").value;
+          let sceneData;
+          try {
+            sceneData = JSON.parse(document.querySelector("#importSceneData").value);
+          } catch (ex) {
+            console.warn("Failed to parse scene data as JSON", ex);
+          }
+          if (
+            sceneId &&
+            sceneData && (sceneData.entities || sceneData.assets)
+          ) {
+            return this.client.importScene(sceneId, sceneData);
+          }
+          console.warn("Can't import scene: Missing sceneId or sceneData");
+          return;
+        }
       }
     }
     handleTopic(topic, data, target) {
@@ -32534,6 +32650,7 @@ window.addEventListener("DOMContentLoaded", () => {
           document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
           document.getElementById("logoutBtn").disabled = false;
           document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
+          this.updateRemoteCollections();
           break;
         case "signedout":
           document.body.classList.remove("logged-in");
@@ -32543,6 +32660,7 @@ window.addEventListener("DOMContentLoaded", () => {
           document.getElementById("joinGameBtn").disabled = true;
           document.getElementById("logoutBtn").disabled = true;
           document.getElementById("leaveGameBtn").disabled = true;
+          this.updateRemoteCollections();
           break;
         case "value":
           console.log("Handling value topic:", data);
@@ -32551,9 +32669,78 @@ window.addEventListener("DOMContentLoaded", () => {
             document.getElementById("queueBtn").disabled = this.client.userInGame || this.client.userInQueue;
             document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
             document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
-          }
-          break;
+          } else if (target == this.scenesList) {
+            console.log("Handling update of scenesList:", data);
+            this.populateScenePicker(data);
+          } else if (target == this.sceneDocument) {
+            console.log("Handling update of sceneDocument:", data);
+            this.loadScene(data);
         }
+        break;
+      }
+    }
+    populateScenePicker(scenesData) {
+      let picker = document.getElementById("scene-picker");
+      picker.options.length = 0;
+      let fragment = document.createDocumentFragment();
+      fragment.appendChild(new Option("", ""));
+      for (let scene of scenesData) {
+        fragment.appendChild(new Option(scene.key, scene.key));
+      }
+      picker.appendChild(fragment);
+    }
+    updateRemoteCollections() {
+      console.log("updateRemoteCollections");
+      if (this.scenesList) {
+        this.scenesList.off("value", this);
+      }
+      if (this.sceneDocument) {
+        this.sceneDocument.off("value", this);
+      }
+      if (this.client.auth?.currentUser) {
+        console.log("updateRemoteCollections, creating RemoteList for scenes");
+        this.scenesList = new _collections__WEBPACK_IMPORTED_MODULE_0__.RemoteList("scenes");
+        this.scenesList.on("value", this);
+        console.log("updateRemoteCollections, creating RemoteDocument for scene");
+        this.sceneDocument = new _collections__WEBPACK_IMPORTED_MODULE_0__.RemoteList();
+        // we'll subscribe when we set a path
+      }
+    }
+    selectScene(sceneId) {
+      const scenePath = `scenes/${sceneId}`;
+      console.log("selectScene, setting path:", scenePath)
+      this.sceneDocument?.off("value", this);
+      this.sceneDocument?.setPath(scenePath);
+      this.sceneDocument?.on("value", this);
+    }
+    loadScene(data) {
+      this._sceneData = data;
+      // debounce a bit
+      this._loadSceneTimer = setTimeout(() => {
+        this._loadScene();
+      }, 500);
+    }
+    _loadScene() {
+      const afScene = document.querySelector("a-scene");
+      afScene.textContent = "";
+
+      let [remoteAssets, remoteEntities] = this._sceneData;
+      console.log("Updating scene with data:", remoteAssets, remoteEntities);
+      let assetsList = Object.values(remoteAssets.value);
+      (0,_aframe_helpers__WEBPACK_IMPORTED_MODULE_5__.addAssets)(assetsList, afScene);
+
+      let sortedEntities = window.sortedEntities = [];
+      for (let entity of Object.values(remoteEntities.value)) {
+        if (!entity._depth) {
+          entity._depth = entity["a-path"].split(" > ").length;
+        }
+        sortedEntities.push(entity);
+      }
+      sortedEntities.sort((a, b) => {
+        return a._depth > b._depth;
+      });
+      console.log("sortedEntities:", sortedEntities);
+      (0,_aframe_helpers__WEBPACK_IMPORTED_MODULE_5__.addEntities)(sortedEntities);
     }
   })(client);
   let playerCard = document.querySelector("player-card");

@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <link rel="StyleSheet" href="./style.css">
     <script type="module" src="./player-page.bundle.js"></script>
+    <script src="./aframe.js"></script>
+    <!-- physics and other extras -->
+    <script src="./aframe-extras.js"></script>
     <style>
+      html, body {
+        overflow: auto;
+      }
       body {
         display: flex;
         align-items: center;
         flex-direction: column;
         padding: 10px;
+        padding-bottom: 30px;
         background-color: lightgray;
       }
       body.logged-in #loginBtn,
@@ -24,12 +31,39 @@
       .logged-in {
         border-color: #666;
       }
+      a-scene {
+        width: 100%;
+        height: 18em;
+      }
     </style>
   </head>
   <body>
     <player-card class="ui-box">
       The player card
     </player-card>
+    <div class="ui-box">
+      <details>
+        <summary>Import</summary>
+        <p><label>Import ID: <input id="importSceneId"></label></p>
+        <textarea id="importSceneData" style="width:100%; height:8em"></textarea>
+        <p><button id="importBtn">Import Scene Data</button></p>
+      </details>
+
+      <details>
+        <summary>Scene <select id="scene-picker"></select></summary>
+        <a-scene>
+          <a-scene embedded style="width:100%;height:18em">
+            <a-assets>
+              <img id="sky" src="./assets/stars.png">
+            </a-assets>
+            <a-sky
+              id="thesky"
+              src="#sky"
+            ></a-sky>
+          </a-scene>
+        </a-scene>
+      </details>
+    </div>
     <footer id="buttons" class="ui-box">
       <button id="loginBtn">Firebase Auth Login (email)</button>
       <button id="anonLoginBtn">Firebase Auth Login (anon)</button>

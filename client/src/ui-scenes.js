@@ -71,7 +71,7 @@ export class GameScene extends UIScene {
   static sceneName = "game-scene";
   async enter(params = {}) {
     super.enter(params);
-    console.log("Entered Game Scene");
+    console.log("Entered Game Scene, got gameId:", params.gameId);
   }
 }
 UIScene.registerScene(GameScene);

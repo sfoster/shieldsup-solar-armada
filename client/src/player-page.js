@@ -3,6 +3,7 @@ import { GameClient } from './game-client';
 import { UIApp } from './ui-app';
 import { Player } from './player';
 import { DocumentItem, DocumentsList, GamesList } from './elements';
+import { addAssets, addEntities } from './aframe-helpers';
 
 import {
   firebaseConfig,
@@ -40,10 +41,28 @@ window.addEventListener("DOMContentLoaded", () => {
       this.client.on("signedin", this);
       this.client.on("signedout", this);
       this.client.playerDocument.on("value", this);
+      document.getElementById("scene-picker").addEventListener("change", this);
     }
     handleEvent(event) {
-      console.log("handling click on target:", event.target);
+      if (!event.target.id) {
+        return;
+      }
+      if (event.target.id == "scene-picker") {
+      }
       switch (event.target.id) {
+        case "scene-picker": {
+          if (event.type !== "change") {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          let sceneId = event.target.value;
+          console.log("scene-picker change:", sceneId);
+          if (sceneId && this.client.auth.currentUser) {
+            this.selectScene(sceneId);
+          }
+          return;
+        }
         case "loginBtn":
           this.client.login("test@example.com", "testy1");
           return;
@@ -65,6 +84,24 @@ window.addEventListener("DOMContentLoaded", () => {
         case "queueBtn":
           this.client.enqueueUser();
           return;
+        case "importBtn": {
+          console.log("handling importBtn click");
+          let sceneId = document.querySelector("#importSceneId").value;
+          let sceneData;
+          try {
+            sceneData = JSON.parse(document.querySelector("#importSceneData").value);
+          } catch (ex) {
+            console.warn("Failed to parse scene data as JSON", ex);
+          }
+          if (
+            sceneId &&
+            sceneData && (sceneData.entities || sceneData.assets)
+          ) {
+            return this.client.importScene(sceneId, sceneData);
+          }
+          console.warn("Can't import scene: Missing sceneId or sceneData");
+          return;
+        }
       }
     }
     handleTopic(topic, data, target) {
@@ -77,6 +114,7 @@ window.addEventListener("DOMContentLoaded", () => {
           document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
           document.getElementById("logoutBtn").disabled = false;
           document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
+          this.updateRemoteCollections();
           break;
         case "signedout":
           document.body.classList.remove("logged-in");
@@ -86,6 +124,7 @@ window.addEventListener("DOMContentLoaded", () => {
           document.getElementById("joinGameBtn").disabled = true;
           document.getElementById("logoutBtn").disabled = true;
           document.getElementById("leaveGameBtn").disabled = true;
+          this.updateRemoteCollections();
           break;
         case "value":
           console.log("Handling value topic:", data);
@@ -94,9 +133,78 @@ window.addEventListener("DOMContentLoaded", () => {
             document.getElementById("queueBtn").disabled = this.client.userInGame || this.client.userInQueue;
             document.getElementById("joinGameBtn").disabled = this.client.userInGame || !this.client.userInQueue;
             document.getElementById("leaveGameBtn").disabled = !this.client.userInGame;
-          }
-          break;
+          } else if (target == this.scenesList) {
+            console.log("Handling update of scenesList:", data);
+            this.populateScenePicker(data);
+          } else if (target == this.sceneDocument) {
+            console.log("Handling update of sceneDocument:", data);
+            this.loadScene(data);
         }
+        break;
+      }
+    }
+    populateScenePicker(scenesData) {
+      let picker = document.getElementById("scene-picker");
+      picker.options.length = 0;
+      let fragment = document.createDocumentFragment();
+      fragment.appendChild(new Option("", ""));
+      for (let scene of scenesData) {
+        fragment.appendChild(new Option(scene.key, scene.key));
+      }
+      picker.appendChild(fragment);
+    }
+    updateRemoteCollections() {
+      console.log("updateRemoteCollections");
+      if (this.scenesList) {
+        this.scenesList.off("value", this);
+      }
+      if (this.sceneDocument) {
+        this.sceneDocument.off("value", this);
+      }
+      if (this.client.auth?.currentUser) {
+        console.log("updateRemoteCollections, creating RemoteList for scenes");
+        this.scenesList = new RemoteList("scenes");
+        this.scenesList.on("value", this);
+        console.log("updateRemoteCollections, creating RemoteDocument for scene");
+        this.sceneDocument = new RemoteList();
+        // we'll subscribe when we set a path
+      }
+    }
+    selectScene(sceneId) {
+      const scenePath = `scenes/${sceneId}`;
+      console.log("selectScene, setting path:", scenePath)
+      this.sceneDocument?.off("value", this);
+      this.sceneDocument?.setPath(scenePath);
+      this.sceneDocument?.on("value", this);
+    }
+    loadScene(data) {
+      this._sceneData = data;
+      // debounce a bit
+      this._loadSceneTimer = setTimeout(() => {
+        this._loadScene();
+      }, 500);
+    }
+    _loadScene() {
+      const afScene = document.querySelector("a-scene");
+      afScene.textContent = "";
+
+      let [remoteAssets, remoteEntities] = this._sceneData;
+      console.log("Updating scene with data:", remoteAssets, remoteEntities);
+      let assetsList = Object.values(remoteAssets.value);
+      addAssets(assetsList, afScene);
+
+      let sortedEntities = window.sortedEntities = [];
+      for (let entity of Object.values(remoteEntities.value)) {
+        if (!entity._depth) {
+          entity._depth = entity["a-path"].split(" > ").length;
+        }
+        sortedEntities.push(entity);
+      }
+      sortedEntities.sort((a, b) => {
+        return a._depth > b._depth;
+      });
+      console.log("sortedEntities:", sortedEntities);
+      addEntities(sortedEntities);
     }
   })(client);
   let playerCard = document.querySelector("player-card");

@@ -56,6 +56,13 @@ window.addEventListener("DOMContentLoaded", () => {
     handleTopic(topic, data, target) {
       console.log("handleTopic:", topic, data, target);
     }
+    loadScene(path) {
+      let aFrameScene = document.querySelector("a-scene");
+      function requestSceneData(req) {
+        // exec a query on the db to get the assets and entities for this scene
+      }
+
+    }
   })(document.body, { client });
 
   const playerCard = document.querySelector("player-card");

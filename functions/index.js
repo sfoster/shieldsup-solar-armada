@@ -286,4 +286,29 @@ app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
   });
 });
 
+app.post("/api/import/:sceneId", async (req, resp) => {
+  if (resp.headersSent) {
+    return;
+  }
+  const sceneRef = db.ref(`scenes/${req.params.sceneId}`);
+  const entitiesRef = sceneRef.child("entities");
+  const assetsRef = sceneRef.child("assets");
+  let entitiesData = {};
+  let assetsData = {};
+  for (let entity of req.body.data?.entities || []) {
+    entitiesData[entity.id] = entity;
+  }
+  for (let asset of req.body.data?.assets || []) {
+    assetsData[asset.id] = asset;
+  }
+  assetsRef.set(assetsData);
+  entitiesRef.set(entitiesData);
+
+  resp.json({
+    status: "imported",
+    ok: true,
+  });
+
+});
+
 exports.webApi = functions.https.onRequest(app);

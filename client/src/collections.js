@@ -14,10 +14,6 @@ export class RemoteObject extends EventEmitterMixin(Object) {
   constructor(path) {
     super();
     this._path = path;
-    // Object.defineProperty(this, 'dbRef', {
-    //   value: db ? ref(db, this.path) : null,
-    //   writable: false
-    // });
   }
   get dbRef() {
     return db ? ref(db, this.path) : null;
@@ -80,6 +76,6 @@ export class RemoteList extends RemoteObject {
     });
     this.resultsCount = results.length;
     console.log(`${this.constructor.name}/${this.path}, onSnapshot, emiting value:`, results);
-    this.emit("value", results);
+    this.emit("value", results, this);
   }
 }

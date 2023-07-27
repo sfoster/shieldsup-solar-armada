@@ -207,6 +207,14 @@ export class GameClient extends EventEmitterMixin(Object) {
     return this._apiRequest(url, "GET");
   }
 
+  async importScene(sceneId, data) {
+    this._assertNonAnonymousUser("non-anonymous logged in user required");
+    console.log("Will import:", sceneId, data);
+
+    const url = this.createUrl(`import/${sceneId}`);
+    await this._apiRequest(url, "POST", data);
+  }
+
   async _apiRequest(url, method, payload) {
     let resp;
     let requestError;

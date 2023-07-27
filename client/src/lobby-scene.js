@@ -59,7 +59,7 @@ export class LobbyScene extends UIScene {
         console.log("Handling update of playerDocument:", data);
         if (target == this.client.playerDocument) {
           if (data.gameId) {
-            this.app.switchScene("game");
+            this.app.switchScene("game", { gameId: data.gameId });
           }
         }
         break;
