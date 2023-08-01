@@ -26315,27 +26315,43 @@ function __classPrivateFieldIn(state, receiver) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "addAssets": () => (/* binding */ addAssets),
-/* harmony export */   "addEntities": () => (/* binding */ addEntities)
+/* harmony export */   "addEntities": () => (/* binding */ addEntities),
+/* harmony export */   "serializeScene": () => (/* binding */ serializeScene),
+/* harmony export */   "thawScene": () => (/* binding */ thawScene),
+/* harmony export */   "visitAssets": () => (/* binding */ visitAssets),
+/* harmony export */   "visitElement": () => (/* binding */ visitElement),
+/* harmony export */   "walkScene": () => (/* binding */ walkScene)
 /* harmony export */ });
 function addAssets(assetsList, sceneElem) {
   console.log("addAssets:", assetsList);
   if (!sceneElem) {
     sceneElem = document.querySelector("a-scene");
   }
+  let assetElem = sceneElem.querySelector("a-assets");
+  if (!assetElem) {
+    assetElem = document.createElement("a-assets");
+    sceneElem.prepend(assetElem);
+  }
   let frag = document.createDocumentFragment();
+  let entityIds = {};
   console.log("adding scene assets:", assetsList);
   // assets
   for (let assetInfo of assetsList) {
     let elem = document.createElement("a-assets-item");
     for (let [name, value] of Object.entries(assetInfo)) {
+      if (name == "id") {
+        entityIds[value] = elem;
+      }
       elem.setAttribute(name, value);
     }
     frag.appendChild(elem);
   }
-  let assetElem = sceneElem.querySelector("a-assets");
-  if (!assetElem) {
-    assetElem = document.createElement("a-assets");
-    sceneElem.prepend(assetElem);
+  for(let [id, newElem] of Object.entries(entityIds)) {
+    let existingElem = assetElem.querySelector(`#${id}`);
+    if (existingElem) {
+      console.log("Removing existing asset element to avoid id clash:", existingElem);
+      existingElem.remove();
+    }
   }
   assetElem.appendChild(frag);
 }
@@ -26377,6 +26393,117 @@ function addEntities(entityList, sceneElem) {
   }
 }
 
+function generateId(elem) {
+  return "e-"+Math.floor(Math.random() * Date.now() * 1000);
+}
+
+function generatePath(elem) {
+  let parts = [];
+  while (elem && elem.localName != "a-scene") {
+    parts.unshift(elem.id ? `#${elem.id}` : elem.localName);
+    elem = elem.parentNode;
+  }
+  return parts.join(" > ");
+}
+
+function visitElement(elem, parentElem, sceneData) {
+  if (!sceneData.entities) {
+    sceneData.entities = [];
+  }
+  let match = elem.localName.match(/^a-(.+)/);
+  if (match) {
+    let entity = {
+      "a-type": match[1]
+    };
+    for (let attr of elem.attributes) {
+      entity[attr.name] = attr.value;
+    }
+    if (!entity.id) {
+      entity.id = elem.id = generateId(elem);
+    }
+    entity["a-path"] = generatePath(elem);
+    if (parentElem && parentElem.id) {
+      entity.parentId = parentElem.id;
+    }
+    console.log("adding entity: ", entity);
+    sceneData.entities.push(entity);
+  }
+  if (elem.childElementCount) {
+    for (let child of elem.children) {
+      visitElement(child, elem, sceneData);
+    }
+  }
+}
+
+function visitAssets(elem, sceneData) {
+  console.log("visitAssets:", elem.childElementCount);
+  if (!sceneData.assets) {
+    sceneData.assets = [];
+  }
+  for (let assetItem of elem.children) {
+    sceneData.assets.push({
+      id: assetItem.id || generateId(elem),
+      src: assetItem.getAttribute("src"),
+    });
+    console.log("Adding asset:", sceneData.assets[sceneData.assets.length-1]);
+  }
+}
+
+function walkScene(sceneElem) {
+  const sceneData = {
+    assets: [],
+    entities: [],
+  };
+  if (sceneElem) {
+    sceneElem = document.querySelector("a-scene");
+  }
+  for (let child of sceneElem.children) {
+    console.log("visiting scene child", child);
+    if (child.localName == "a-assets") {
+      visitAssets(child, sceneData);
+    } else {
+      visitElement(child, undefined, sceneData);
+    }
+  }
+  return sceneData;
+}
+
+function serializeScene(sceneElem) {
+  if (!sceneElem) {
+    sceneElem = document.querySelector("a-scene");
+  }
+  let sceneData = walkScene(sceneElem);
+  let dataStr = JSON.stringify(sceneData, null, 2);
+  return dataStr;
+}
+
+function thawScene(sceneData, sceneElem) {
+  console.log("at thawScene, assets: ", document.querySelectorAll('a-assets > *'));
+  console.log("entities: ", document.querySelectorAll('a-scene :is(a-entity, a-sky)'));
+  if (typeof sceneData == "string") {
+    sceneData = JSON.parse(sceneData);
+  }
+  if (!sceneElem) {
+    sceneElem = document.querySelector("a-scene");
+  }
+  let {assets = [], entities = []} = sceneData;
+  let sortedEntities = [];
+  for (let entity of entities) {
+    if (!entity._depth) {
+      entity._depth = entity["a-path"].split(" > ").length;
+    }
+    sortedEntities.push(entity);
+  }
+  sortedEntities.sort((a, b) => {
+    return a._depth > b._depth;
+  });
+
+  console.log("Updating scene with data:", assets, sortedEntities);
+  addAssets(assets, sceneElem);
+  addEntities(sortedEntities, sceneElem);
+  console.log("assets: ", document.querySelectorAll('a-assets > *'));
+  console.log("entities: ", document.querySelectorAll('a-scene :is(a-entity, a-sky)'));
+}
 
 /***/ }),
 
@@ -32720,27 +32847,27 @@ window.addEventListener("DOMContentLoaded", () => {
         this._loadScene();
       }, 500);
     }
+    _clearScene(afScene) {
+      for (let child of afScene.children) {
+        if (child.localName == "a-assets") {
+          child.textContent = "";
+          continue;
+        }
+        child.remove();
+      }
+    }
     _loadScene() {
       const afScene = document.querySelector("a-scene");
-      afScene.textContent = "";
+      this._clearScene(afScene);
 
       let [remoteAssets, remoteEntities] = this._sceneData;
       console.log("Updating scene with data:", remoteAssets, remoteEntities);
       let assetsList = Object.values(remoteAssets.value);
-      (0,_aframe_helpers__WEBPACK_IMPORTED_MODULE_5__.addAssets)(assetsList, afScene);
-
-      let sortedEntities = window.sortedEntities = [];
-      for (let entity of Object.values(remoteEntities.value)) {
-        if (!entity._depth) {
-          entity._depth = entity["a-path"].split(" > ").length;
-        }
-        sortedEntities.push(entity);
-      }
-      sortedEntities.sort((a, b) => {
-        return a._depth > b._depth;
-      });
-      console.log("sortedEntities:", sortedEntities);
-      (0,_aframe_helpers__WEBPACK_IMPORTED_MODULE_5__.addEntities)(sortedEntities);
+      let entitiesList = Object.values(remoteEntities.value);
+      (0,_aframe_helpers__WEBPACK_IMPORTED_MODULE_5__.thawScene)({
+        assets: assetsList,
+        entities: entitiesList
+      }, afScene);
     }
   })(client);
   let playerCard = document.querySelector("player-card");

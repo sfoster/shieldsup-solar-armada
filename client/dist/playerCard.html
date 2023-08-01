@@ -35,6 +35,13 @@
         width: 100%;
         height: 18em;
       }
+      details {
+        margin-bottom: 1em;
+        box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
+      }
+      details > summary {
+        padding: 5px;
+      }
     </style>
   </head>
   <body>
@@ -49,9 +56,9 @@
         <p><button id="importBtn">Import Scene Data</button></p>
       </details>
 
-      <details>
+      <details open>
         <summary>Scene <select id="scene-picker"></select></summary>
-        <a-scene>
+        <div>
           <a-scene embedded style="width:100%;height:18em">
             <a-assets>
               <img id="sky" src="./assets/stars.png">
@@ -61,7 +68,7 @@
               src="#sky"
             ></a-sky>
           </a-scene>
-        </a-scene>
+        </div>
       </details>
     </div>
     <footer id="buttons" class="ui-box">

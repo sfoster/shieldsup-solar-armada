@@ -5,6 +5,7 @@ module.exports = {
   entry: {
     app: './src/app.js',
     "player-page": './src/player-page.js',
+    "scene-page": './src/scene-page.js',
   },
   // The location of the build folder described above
   output: {

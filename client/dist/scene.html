@@ -1,16 +1,38 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8">
+    <script type="module" src="./scene-page.bundle.js"></script>
     <script src="./aframe.js"></script>
+    <!-- physics and other extras -->
+    <script src="./aframe-extras.js"></script>
+    <style>
+      html, body {
+        overflow: auto;
+      }
+      a-scene {
+        width: 90vw;
+        height: 90vh;
+        outline: 1px dotted grey;
+      }
+    </style>
   </head>
   <body>
-    <a-scene>
-      <a-assets>
-        <img id="sky" src="./assets/stars.png">
-      </a-assets>
-      <a-sky
-        id="sky"
-        src="#sky"
-      ></a-sky>
-    </a-scene>
-  </body>
+    <details open="">
+      <summary>The Scene</summary>
+      <a-scene embedded>
+        <a-assets>
+          <a-assets-item id="sky" src="./assets/stars.png"></a-assets-item>
+          <!-- img id="sky" src="./assets/stars.png" -->
+        </a-assets>
+        <a-sky
+          id="thesky"
+          src="#sky"
+        ></a-sky>
+      </a-scene>
+    </details>
+
+    <!-- a-scene embedded>
+    </a-scene -->
+</body>
 </html>

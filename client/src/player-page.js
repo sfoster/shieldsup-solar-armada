@@ -3,7 +3,7 @@ import { GameClient } from './game-client';
 import { UIApp } from './ui-app';
 import { Player } from './player';
 import { DocumentItem, DocumentsList, GamesList } from './elements';
-import { addAssets, addEntities } from './aframe-helpers';
+import { addAssets, addEntities, thawScene } from './aframe-helpers';
 
 import {
   firebaseConfig,
@@ -184,27 +184,27 @@ window.addEventListener("DOMContentLoaded", () => {
         this._loadScene();
       }, 500);
     }
+    _clearScene(afScene) {
+      for (let child of afScene.children) {
+        if (child.localName == "a-assets") {
+          child.textContent = "";
+          continue;
+        }
+        child.remove();
+      }
+    }
     _loadScene() {
       const afScene = document.querySelector("a-scene");
-      afScene.textContent = "";
+      this._clearScene(afScene);
 
       let [remoteAssets, remoteEntities] = this._sceneData;
       console.log("Updating scene with data:", remoteAssets, remoteEntities);
       let assetsList = Object.values(remoteAssets.value);
-      addAssets(assetsList, afScene);
-
-      let sortedEntities = window.sortedEntities = [];
-      for (let entity of Object.values(remoteEntities.value)) {
-        if (!entity._depth) {
-          entity._depth = entity["a-path"].split(" > ").length;
-        }
-        sortedEntities.push(entity);
-      }
-      sortedEntities.sort((a, b) => {
-        return a._depth > b._depth;
-      });
-      console.log("sortedEntities:", sortedEntities);
-      addEntities(sortedEntities);
+      let entitiesList = Object.values(remoteEntities.value);
+      thawScene({
+        assets: assetsList,
+        entities: entitiesList
+      }, afScene);
     }
   })(client);
   let playerCard = document.querySelector("player-card");
