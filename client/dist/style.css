@@ -20,6 +20,18 @@ body {
   align-items: center;
   flex-direction: column;
 }
+#ui-layer.docked {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: unset;
+  flex-direction: row;
+  align-items: flex-start;
+  background-color: rgba(255,255,255,0.3);
+  padding-bottom: 2px;
+  padding-inline-end: 2px;
+}
+
 .scene-ui:not(.hidden) {
   display: block;
 }
@@ -35,6 +47,11 @@ body {
 }
 player-card.ui-box {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+.docked .ui-box {
+  background-color: rgba(255,255,255,0.1);
 }
 player-card {
   transition-delay: 250ms;
@@ -51,6 +68,24 @@ player-card.logged-in {
 player-card.validated {
   border-color: #000;
 }
+player-card.collapsed {
+  padding: 2px 6px;
+  overflow: hidden;
+  height: 28px;
+  margin-block: 0;
+}
+player-card.collapsed::part(side) {
+  flex-basis: 32px;
+}
+player-card.collapsed::part(avatar) {
+  width: 24px;
+  height: 24px;
+  margin-block: 0;
+}
+player-card.collapsed::part(details) {
+  overflow: hidden;
+}
+
 .ui-scene {
   display: none;
 }
@@ -63,4 +98,13 @@ player-card.validated {
   padding: 10px;
   border: 1px solid grey;
   border-radius: 8px;
+}
+.docked .ui-box,
+.docked .ui-scene::part(toolbar){
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  background-color: rgba(255,255,255,0.1);
+}
+.ui-box.collapsed {
+  width: 12em;
 }

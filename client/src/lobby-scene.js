@@ -41,7 +41,7 @@ export class LobbyScene extends UIScene {
     for (let id of this.collections.keys()) {
       const elem = this.querySelector(`#${id}`);
       console.log("disconnecting collection-backed elem:", elem);
-      elem.disconnectCollection();
+      elem.disconnectCollection(this);
     }
     this.collections.clear();
     super.exit();

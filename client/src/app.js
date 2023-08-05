@@ -7,6 +7,7 @@ import * as scenes from './ui-scenes';
 import { UIApp } from './ui-app';
 import { LoginScene } from './login-scene';
 import { LobbyScene } from './lobby-scene';
+import { GameScene } from './game-scene';
 
 import {
   firebaseConfig,

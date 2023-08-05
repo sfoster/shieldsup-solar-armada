@@ -101,11 +101,11 @@ export class PlayerCard extends LitElement {
     this.classList.toggle("logged-in", this.loggedIn);
     return html`
     <link rel="stylesheet" href=${this.constructor.stylesheetUrl} />
-    <div id="side-col">
-      <div id="avatar"></div>
+    <div id="side-col" part="side">
+      <div id="avatar" part="avatar"></div>
     </div>
-    <div id="details-col">
-      <h1 id="player-name">${this.displayName}</h1>
+    <div id="details-col" part="details">
+      <h1 id="player-name" part="player-name">${this.displayName}</h1>
       <p id="player-description">${this.description}</p>
       <p id="game-details" ?hidden="${!this.gameId}">Current game: ${this.gameId}</p>
       ${this.loggedIn?

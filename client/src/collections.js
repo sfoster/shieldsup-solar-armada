@@ -32,6 +32,15 @@ export class RemoteObject extends EventEmitterMixin(Object) {
     super.on(...args);
     this.watch();
   }
+  off(topic, listener) {
+    super.off(topic, listener);
+    let subscriberCount = Array.from(this._events.values())
+      .reduce((total, subscriberSet) => total + subscriberSet.size, 0);
+    if (!subscriberCount) {
+      console.log(`${this.constructor.name}/${this.path} off(${topic}), subscriberCount: ${subscriberCount}`);
+      this.unwatch();
+    }
+  }
   watch() {
     if (!client.connected) {
       console.warn("Client isn't connected");
@@ -48,6 +57,7 @@ export class RemoteObject extends EventEmitterMixin(Object) {
     });
   }
   unwatch() {
+    console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
     if (this._unsubscriber) {
       this._unsubscriber();
     }

@@ -24,8 +24,11 @@ export class DocumentsList extends LitElement {
     this.collection.on("value", this);
     this.disabled = false;
   }
-  disconnectCollection() {
+  disconnectCollection(host) {
     this.collection.off("value", this);
+    if (host) {
+      this.collection.off("value", host);
+    }
   }
   prepareViewData(results) {
     console.log("Got results:", results);

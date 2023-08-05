@@ -6,7 +6,7 @@ export class LoginScene extends UIScene {
   static sceneName = "login-scene";
   static properties = {
     statusMessages: {},
-    signedIn: {},
+    signedIn: {type: Boolean},
   };
   clientTopics = [
     "signedin",
@@ -24,17 +24,7 @@ export class LoginScene extends UIScene {
   get playerCard() {
     return this.querySelector("player-card");
   }
-  connectedCallback() {
-    console.log("LoginScene#connectedCallback");
-    super.connectedCallback();
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-  }
   enter(params = {}) {
-    console.log("LoginScene#enter got params:", params);
-    console.log("LoginScene#enter has app, client:", this.app, this.client);
-
     super.enter(params);
     this.statusMessages = [];
 
@@ -51,6 +41,7 @@ export class LoginScene extends UIScene {
     }
     document.querySelector("player-card").classList.remove("hidden");
     if (params?.status) {
+        console.log("LoginScene#enter, got params.status", params.status);
         // only display unauthorized message if its unexpected
         if (!this.client.auth.currentUser && params.status == "unauthorized") {
           return;

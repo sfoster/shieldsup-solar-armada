@@ -272,11 +272,13 @@ window.addAssets = _aframe_helpers__WEBPACK_IMPORTED_MODULE_0__.addAssets;
 window.addEntities = _aframe_helpers__WEBPACK_IMPORTED_MODULE_0__.addEntities;
 window.serializeScene = _aframe_helpers__WEBPACK_IMPORTED_MODULE_0__.serializeScene;
 
+//      "src": "./assets/stars.png"
+
 let testSceneJSON = `{
   "assets": [
     {
-      "id": "sky",
-      "src": "./assets/stars.png"
+      "id": "sky-img",
+      "src": "https://cdn.glitch.me/e99f4064-e398-48d8-882b-d24a844fbb01%2Fpanorama_image.png?v=1634611197961",
     }
   ],
   "entities": [
@@ -293,11 +295,11 @@ let testSceneJSON = `{
     {
       "a-type": "sky",
       "geometry": "",
-      "id": "thesky",
+      "id": "sky",
       "material": "",
       "scale": "",
-      "src": "#sky",
-      "a-path": "#thesky"
+      "src": "#sky-img",
+      "a-path": "#sky"
     },
     {
       "a-type": "box",

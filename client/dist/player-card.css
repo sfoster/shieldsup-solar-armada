@@ -1,16 +1,18 @@
-:host {
+:host, :host.ui-box {
   flex-direction: row;
   flex-wrap: wrap;
   border: 1px solid grey;
   padding: 6px;
   margin-block: 0 0.5em;
 }
+
 #side-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex-basis: 96px;
 }
+
 #details-col {
   padding-inline: 10px 6px;
 }
@@ -27,6 +29,7 @@
   margin-block: 0;
   margin-inline: 0;
 }
+
 #player-description,
 #game-details {
   flex-grow: 1;

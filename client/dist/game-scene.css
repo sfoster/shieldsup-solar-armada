@@ -1,0 +1,10 @@
+.toolbar {
+  background-color: rgba(255,255,255,0.8);
+  overflow: hidden;
+  height: 28px;
+  width: 24em;
+  padding: 2px 6px;
+  border: 1px solid grey;
+  border-radius: 8px;
+  margin-block: 0;
+}

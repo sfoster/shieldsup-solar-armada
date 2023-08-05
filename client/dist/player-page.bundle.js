@@ -26556,6 +26556,15 @@ class RemoteObject extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_0__.EventE
     super.on(...args);
     this.watch();
   }
+  off(topic, listener) {
+    super.off(topic, listener);
+    let subscriberCount = Array.from(this._events.values())
+      .reduce((total, subscriberSet) => total + subscriberSet.size, 0);
+    if (!subscriberCount) {
+      console.log(`${this.constructor.name}/${this.path} off(${topic}), subscriberCount: ${subscriberCount}`);
+      this.unwatch();
+    }
+  }
   watch() {
     if (!client.connected) {
       console.warn("Client isn't connected");
@@ -26572,6 +26581,7 @@ class RemoteObject extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_0__.EventE
     });
   }
   unwatch() {
+    console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
     if (this._unsubscriber) {
       this._unsubscriber();
     }
@@ -26692,8 +26702,11 @@ class DocumentsList extends lit__WEBPACK_IMPORTED_MODULE_0__.LitElement {
     this.collection.on("value", this);
     this.disabled = false;
   }
-  disconnectCollection() {
+  disconnectCollection(host) {
     this.collection.off("value", this);
+    if (host) {
+      this.collection.off("value", host);
+    }
   }
   prepareViewData(results) {
     console.log("Got results:", results);
@@ -27256,11 +27269,11 @@ class PlayerCard extends lit__WEBPACK_IMPORTED_MODULE_1__.LitElement {
     this.classList.toggle("logged-in", this.loggedIn);
     return lit__WEBPACK_IMPORTED_MODULE_1__.html`
     <link rel="stylesheet" href=${this.constructor.stylesheetUrl} />
-    <div id="side-col">
-      <div id="avatar"></div>
+    <div id="side-col" part="side">
+      <div id="avatar" part="avatar"></div>
     </div>
-    <div id="details-col">
-      <h1 id="player-name">${this.displayName}</h1>
+    <div id="details-col" part="details">
+      <h1 id="player-name" part="player-name">${this.displayName}</h1>
       <p id="player-description">${this.description}</p>
       <p id="game-details" ?hidden="${!this.gameId}">Current game: ${this.gameId}</p>
       ${this.loggedIn?
@@ -32802,8 +32815,8 @@ window.addEventListener("DOMContentLoaded", () => {
           } else if (target == this.sceneDocument) {
             console.log("Handling update of sceneDocument:", data);
             this.loadScene(data);
-        }
-        break;
+          }
+          break;
       }
     }
     populateScenePicker(scenesData) {

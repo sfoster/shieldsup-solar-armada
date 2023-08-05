@@ -139,8 +139,8 @@ window.addEventListener("DOMContentLoaded", () => {
           } else if (target == this.sceneDocument) {
             console.log("Handling update of sceneDocument:", data);
             this.loadScene(data);
-        }
-        break;
+          }
+          break;
       }
     }
     populateScenePicker(scenesData) {
