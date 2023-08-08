@@ -8,7 +8,7 @@ import { UIApp } from './ui-app';
 import { LoginScene } from './login-scene';
 import { LobbyScene } from './lobby-scene';
 import { GameScene } from './game-scene';
-
+import { AframeSceneManager } from './aframe-scene-manager';
 import {
   firebaseConfig,
   firebaseEmulators,
@@ -42,9 +42,32 @@ function connectClient() {
   return client;
 }
 
+const defaultSceneData = [
+  {
+    "key": "assets",
+    "value": {
+      "skyimage": {
+        "id": "skyimage",
+        "src": "./assets/stars.png"
+      },
+    }
+  },
+  {
+    "key": "entities",
+    "value": {
+      "default-sky": {
+        "a-path": "#default-sky",
+        "a-type": "sky",
+        "id": "default-sky",
+        "src": "#skyimage",
+      },
+    }
+  }
+];
+
 window.addEventListener("DOMContentLoaded", () => {
   const client = connectClient(window.config);
-
+  const aFSceneManager = new AframeSceneManager();
   const app = window.app = new (class _UIPage extends UIApp {
     constructor(elem, options = {}) {
       super(elem, options);
@@ -52,17 +75,35 @@ window.addEventListener("DOMContentLoaded", () => {
       this.client = this.options.client;
       this.client.on("signedin", this);
       this.client.on("signedout", this);
+      this.client.on("usernogameid", this);
       this.client.playerDocument.on("value", this);
+
+      this.afSceneManager = new AframeSceneManager();
     }
     handleTopic(topic, data, target) {
-      console.log("handleTopic:", topic, data, target);
-    }
-    loadScene(path) {
-      let aFrameScene = document.querySelector("a-scene");
-      function requestSceneData(req) {
-        // exec a query on the db to get the assets and entities for this scene
+      switch (topic) {
+        case "signedout":
+          this.switchScene("login");
+          break;
+        case "signedin":
+          if (this.currentScene.id == "login") {
+            this.switchScene("lobby");
+          }
+          break;
+        case "usernogameid":
+          this.switchScene("lobby");
+        default:
+          console.log("No handler for topic:", topic);
+          break;
       }
-
+    }
+    switchScene(name, params={}) {
+      super.switchScene(name, params);
+      if (this.currentScene.id == "game") {
+        // we'll load the game's scene data into the a-frame scene
+      } else {
+        this.afSceneManager.loadStaticScene("default", defaultSceneData);
+      }
     }
   })(document.body, { client });
 

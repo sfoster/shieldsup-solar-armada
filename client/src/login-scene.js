@@ -6,11 +6,8 @@ export class LoginScene extends UIScene {
   static sceneName = "login-scene";
   static properties = {
     statusMessages: {},
-    signedIn: {type: Boolean},
   };
   clientTopics = [
-    "signedin",
-    "signedout",
     "uservalidated",
     "usernotvalidated",
     "request/success",
@@ -23,6 +20,9 @@ export class LoginScene extends UIScene {
   }
   get playerCard() {
     return this.querySelector("player-card");
+  }
+  get signedIn() {
+    return this.client.connected;
   }
   enter(params = {}) {
     super.enter(params);
@@ -63,19 +63,6 @@ export class LoginScene extends UIScene {
   handleTopic(topic, data, target) {
     const playerCard = this.playerCard;
     switch (topic) {
-      case "signedin": {
-        this.signedIn = true;
-        this.statusMessages.length = 0;
-        this.displayStatus("Firebase user signed in");
-        console.log("Client signedin, got data:", data);
-        break;
-      }
-      case "signedout": {
-        this.signedIn = false;
-        this.displayStatus("Firebase user signed out");
-        console.log("Client signed out");
-        break;
-      }
       case "request/success": {
         this.displayStatus(data.status)
         break;

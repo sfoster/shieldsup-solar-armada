@@ -154,8 +154,6 @@ export function serializeScene(sceneElem) {
 }
 
 export function thawScene(sceneData, sceneElem) {
-  console.log("at thawScene, assets: ", document.querySelectorAll('a-assets > *'));
-  console.log("entities: ", document.querySelectorAll('a-scene :is(a-entity, a-sky)'));
   if (typeof sceneData == "string") {
     sceneData = JSON.parse(sceneData);
   }

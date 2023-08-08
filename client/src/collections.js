@@ -57,8 +57,12 @@ export class RemoteObject extends EventEmitterMixin(Object) {
     });
   }
   unwatch() {
-    console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
+    if (!this.path) {
+      console.log("unwatch: No db path defined");
+      return;
+    }
     if (this._unsubscriber) {
+      console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
       this._unsubscriber();
     }
   }

@@ -51,7 +51,7 @@ export class UIScene extends LitElement {
     this._topics.add(name);
     this.ownerDocument.addEventListener(name, this);
   }
-  removeListener(name) {
+  unlisten(name) {
     this._topics.delete(name);
     this.ownerDocument.removeEventListener(name, this);
   }
@@ -71,7 +71,7 @@ export class UIScene extends LitElement {
   exit() {
     this._active = false;
     for (let topic of this._topics){
-      this.removeListener(topic);
+      this.unlisten(topic);
     }
     let taskFn;
     while (taskFn = this._exitTasks?.pop()) {

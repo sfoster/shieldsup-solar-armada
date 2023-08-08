@@ -199,7 +199,13 @@ export class GameClient extends EventEmitterMixin(Object) {
     this._assertNonAnonymousUser("non-anonymous logged in user required");
 
     const url = this.createUrl("leavegame");
-    await this._apiRequest(url, "POST", {});
+    try {
+      await this._apiRequest(url, "POST", {});
+    } catch (ex) {
+      console.log("request to leaveGame failed:", ex);
+    } finally {
+      this.emit("usernogameid", {});
+    }
   }
 
   async ping() {

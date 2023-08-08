@@ -1,7 +1,6 @@
 import { RemoteList, RemoteObject } from './collections';
 import { UIScene } from './ui-scene';
 import { html } from 'lit';
-import { addAssets, addEntities, thawScene } from './aframe-helpers';
 
 export class GameScene extends UIScene {
   static sceneName = "game-scene";
@@ -21,11 +20,11 @@ export class GameScene extends UIScene {
     this._exitTasks.push(() => {
       this.gameDocument.off("value", this);
     });
-    this.sceneDocument = new RemoteList();
     this.gameId = params.gameId;
   }
   exit() {
     this.ownerDocument.querySelector("#ui-layer").classList.remove("docked");
+    super.exit();
   }
   handleTopic(topic, data, target) {
     switch (topic) {
@@ -36,50 +35,15 @@ export class GameScene extends UIScene {
         } else if (target == this.gameDocument) {
           console.log("Handling update of gameDocument:", data);
           if (data.sceneId) {
-            this.selectScene(data.sceneId);
+            this.app.afSceneManager.selectScene(data.sceneId);
           }
-        } else if (target == this.sceneDocument) {
-          console.log("Handling update of sceneDocument:", data);
-          this.loadScene(data);
         }
         break;
     }
   }
-  selectScene(sceneId) {
-    const scenePath = `scenes/${sceneId}`;
-    console.log("selectScene, setting path:", scenePath)
-    this.sceneDocument?.off("value", this);
-    this.sceneDocument?.setPath(scenePath);
-    this.sceneDocument?.on("value", this);
-  }
-loadScene(data) {
-    this._sceneData = data;
-    // debounce a bit
-    this._loadSceneTimer = setTimeout(() => {
-      this._loadScene();
-    }, 500);
-  }
-  _clearScene(afScene) {
-    for (let child of afScene.children) {
-      if (child.localName == "a-assets") {
-        child.textContent = "";
-        continue;
-      }
-      child.remove();
-    }
-  }
-  _loadScene() {
-    const afScene = document.querySelector("a-scene");
-    this._clearScene(afScene);
-
-    let [remoteAssets, remoteEntities] = this._sceneData;
-    console.log("Updating scene with data:", remoteAssets, remoteEntities);
-    let assetsList = Object.values(remoteAssets.value);
-    let entitiesList = Object.values(remoteEntities.value);
-    thawScene({
-      assets: assetsList,
-      entities: entitiesList
-    }, afScene);
+  onLeaveClick(event) {
+    console.log("onLeaveClick:", event);
+    this.client.leaveGame();
   }
   render() {
     return html`

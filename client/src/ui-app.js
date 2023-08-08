@@ -46,8 +46,5 @@ export class UIApp {
     line.textContent = message;
     this.messageList.appendChild(line);
   }
-  requireLogin(statusData) {
-    console.log("requireLogin, got statusData:", statusData);
-  }
 }
 

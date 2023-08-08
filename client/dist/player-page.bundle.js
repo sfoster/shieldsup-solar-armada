@@ -26478,8 +26478,6 @@ function serializeScene(sceneElem) {
 }
 
 function thawScene(sceneData, sceneElem) {
-  console.log("at thawScene, assets: ", document.querySelectorAll('a-assets > *'));
-  console.log("entities: ", document.querySelectorAll('a-scene :is(a-entity, a-sky)'));
   if (typeof sceneData == "string") {
     sceneData = JSON.parse(sceneData);
   }
@@ -26581,8 +26579,12 @@ class RemoteObject extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_0__.EventE
     });
   }
   unwatch() {
-    console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
+    if (!this.path) {
+      console.log("unwatch: No db path defined");
+      return;
+    }
     if (this._unsubscriber) {
+      console.log(`${this.constructor.name}/${this.path}, unwatch, calling unsubscriber:`, this._unsubscriber);
       this._unsubscriber();
     }
   }
@@ -27063,7 +27065,13 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
     this._assertNonAnonymousUser("non-anonymous logged in user required");
 
     const url = this.createUrl("leavegame");
-    await this._apiRequest(url, "POST", {});
+    try {
+      await this._apiRequest(url, "POST", {});
+    } catch (ex) {
+      console.log("request to leaveGame failed:", ex);
+    } finally {
+      this.emit("usernogameid", {});
+    }
   }
 
   async ping() {
@@ -27346,9 +27354,6 @@ class UIApp {
     const line = document.createElement("li");
     line.textContent = message;
     this.messageList.appendChild(line);
-  }
-  requireLogin(statusData) {
-    console.log("requireLogin, got statusData:", statusData);
   }
 }
 
