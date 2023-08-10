@@ -41,6 +41,10 @@ export class RemoteObject extends EventEmitterMixin(Object) {
       this.unwatch();
     }
   }
+  disconnect() {
+    this._events?.clear();
+    this.unwatch();
+  }
   watch() {
     if (!client.connected) {
       console.warn("Client isn't connected");

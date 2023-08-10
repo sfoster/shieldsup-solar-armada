@@ -18,18 +18,23 @@ export class AframeSceneManager {
   loadStaticScene(sceneId, sceneData) {
     if (sceneId !== this._currentStaticId) {
       this._sceneData = sceneData;
-      this._currentStaticId = sceneId;
-      this._loadScene();
+      this.selectScene(sceneId, true);
     }
   }
-  selectScene(sceneId) {
+  selectScene(sceneId, isStatic) {
     delete this._currentStaticId;
-    this.sceneDocument?.off("value", this);
-
-    const scenePath = `scenes/${sceneId}`;
-    console.log("selectScene, setting path:", scenePath)
-    this.sceneDocument?.setPath(scenePath);
-    this.sceneDocument?.on("value", this);
+    console.log(`selectScene: ${sceneId}, isStatic: ${isStatic}`);
+    if (isStatic) {
+      this.sceneDocument?.disconnect();
+      this._currentStaticId = sceneId;
+      this._loadScene();
+    } else {
+      this.sceneDocument?.off("value", this);
+      const scenePath = `scenes/${sceneId}`;
+      console.log("selectScene, setting path:", scenePath)
+      this.sceneDocument?.setPath(scenePath);
+      this.sceneDocument?.on("value", this);
+    }
   }
   loadScene(data) {
     this._sceneData = data;
@@ -55,8 +60,8 @@ export class AframeSceneManager {
 
     let [remoteAssets, remoteEntities] = this._sceneData;
     console.log("Updating scene with data:", remoteAssets, remoteEntities);
-    let assetsList = Object.values(remoteAssets.value);
-    let entitiesList = Object.values(remoteEntities.value);
+    let assetsList = remoteAssets ? Object.values(remoteAssets.value) : [];
+    let entitiesList = remoteEntities? Object.values(remoteEntities.value) : [];
     thawScene({
       assets: assetsList,
       entities: entitiesList

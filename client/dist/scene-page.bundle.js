@@ -53,13 +53,14 @@ function addAssets(assetsList, sceneElem) {
 }
 
 function addEntities(entityList, sceneElem) {
-  console.log("addEntities:", entityList);
   if (!sceneElem) {
     sceneElem = document.querySelector("a-scene");
   }
   let fragment = document.createDocumentFragment();
   let excludeAttributeProperties = new Set(["a-type", "a-path", "_depth"])
-
+  // sort by lowest depth first, so we add parent nodes before children
+  entityList.sort((a, b) => (a._depth ?? 0) > (b._depth ?? 0) ? 1 : -1);
+  console.log("addEntities:", entityList);
   for (let entity of entityList) {
     let elem = document.createElement("a-" + entity["a-type"]);
     let parentNode;
