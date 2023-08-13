@@ -26,6 +26,16 @@ export class GameScene extends UIScene {
     this.ownerDocument.querySelector("#ui-layer").classList.remove("docked");
     super.exit();
   }
+  handleEvent(event) {
+    super.handleEvent(event);
+    console.log("GameScene, handleEvent:", event.type);
+    switch (event.type) {
+      case "scene-targetable-click":
+        console.log(`GameScene got event: ${event.type}, from entity: ${event.target.id}`);
+        this.onTargetableClick(event.target.id);
+        break;
+    }
+  }
   handleTopic(topic, data, target) {
     switch (topic) {
       case "value":
@@ -35,22 +45,40 @@ export class GameScene extends UIScene {
         } else if (target == this.gameDocument) {
           console.log("Handling update of gameDocument:", data);
           if (data.sceneId) {
-            this.app.afSceneManager.selectScene(data.sceneId);
+            this.app.afSceneManager.selectScene(data.sceneId).then(() => this.onSceneLoaded());
           }
         }
         break;
     }
   }
+  onSceneLoaded() {
+    console.log("Game scene loaded");
+    let sceneElem = this.app.afSceneManager.sceneElement;
+    let cursorElem = sceneElem.querySelector("[cursor]");
+    if (cursorElem) {
+      cursorElem.setAttribute("raycaster", "objects", ".hitme");
+      cursorElem.setAttribute("cursor", "rayOrigin", "mouse");
+      console.log("onSceneLoaded, adding raycaster to cursor entity:", cursorElem.components);
+    }
+    sceneElem.addEventListener("scene-targetable-click", this);
+  }
   onLeaveClick(event) {
     console.log("onLeaveClick:", event);
     this.client.leaveGame();
+  }
+  onTargetableClick(entityId) {
+    console.log("onTargetableClick, got entityId", entityId);
+    let scenePath = this.app.afSceneManager.sceneDocument.path;
+    this.client.damage(`${scenePath}/entities/${entityId}`, { durability: -50 });
   }
   render() {
     return html`
       <link rel="StyleSheet" href="./game-scene.css">
       <div class="toolbar" part="toolbar">
-        <span id="gameLabel">${this.gameId}</span>
-        <button id="leaveBtn" @click="${this.onLeaveClick}">Leave</button>
+        <div class="toolbar-item">
+          <span id="gameLabel" class="toolbar-label">${this.gameId}</span>
+          <button id="leaveBtn" @click="${this.onLeaveClick}">Leave</button>
+        </div>
       </div>
       `;
   }

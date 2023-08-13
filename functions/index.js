@@ -286,6 +286,47 @@ app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
   });
 });
 
+app.post("/api/damage/scenes/:sceneId/entities/:id", checkProposedChange, async (req, resp) => {
+  if (resp.headersSent) {
+    return;
+  }
+  console.log(`Update entity ${req.params.id}, in scene: ${req.params.sceneId}`, req.body);
+  let result = "Alright";
+  let ok = true;
+  let entityPath = `scenes/${req.params.sceneId}/entities/${req.params.id}`;
+  let entityData;
+  const entityRef = db.ref(entityPath);
+  let snapshot = await promiseSnapshot(entityRef);
+
+  if (!snapshot.exists()) {
+      console.log("Path doesnt exist:", entityPath);
+      resp.status(404).json({ "status": "nope", ok: false, message: `No such entity at "${entityPath}"` });
+      return;
+  }
+
+  entityRef.transaction(() => {
+    entityData = snapshot.val();
+    console.log("damage entity, entityData:", entityData);
+    let damage = req.body.data.durability;
+    let currentDurability = entityData.durability || 0;
+    let newDurability = Math.max(0, currentDurability += damage);
+
+    entityData.durability = newDurability;
+    entityRef.update(entityData);
+    console.log(`transaction done, added damage: ${damage}, typeof: ${typeof damage}, result: ${entityData.durability}`);
+  }).then(() => {
+    console.log(`transaction promise resolved, responding with status:ok`);
+    resp.json({
+      status: "ok",
+      ok: true,
+      message: `entity at  ${entityPath} updated to durability: ${entityData.durability}`,
+    });
+  }).catch(ex => {
+    console.log(`transaction promise rejected, responding with 512`, ex);
+    resp.status(512).json({ "status": "nope", ok: false });
+  });
+});
+
 app.post("/api/import/:sceneId", async (req, resp) => {
   if (resp.headersSent) {
     return;

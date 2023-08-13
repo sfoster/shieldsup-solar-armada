@@ -8,3 +8,10 @@
   border-radius: 8px;
   margin-block: 0;
 }
+.toolbar > .toolbar-item {
+  display: inline-block;
+  margin-inline: 6px;
+}
+.toolbar > .toolbar-item:first-of-type {
+  margin-inline-start: 0;
+}

@@ -126,13 +126,17 @@ export class GameClient extends EventEmitterMixin(Object) {
       });
     }
   }
+  damage(path, data) {
+    this._assertNonAnonymousUser("damage: non-anonymous logged in user required");
+    const url = this.createUrl(`damage/${path}`);
+    console.log("damage, sending request to:", url, data);
+    return this._apiRequest(url, "POST", data);
+  }
   updateEntity(path, data) {
-    if (!(this.connected && this.remoteUser)) {
-      console.info("User not logged in and/or client not connected");
-      return;
-    }
+    this._assertNonAnonymousUser("updateEntity: non-anonymous logged in user required");
     const url = this.createUrl(path);
-    return this._apiRequest(url, "PUT", data);
+    console.log("updateEntity, sending request to:", url, data);
+    return this._apiRequest(url, "POST", data);
   }
   _assertNonAnonymousUser(message) {
     let error;

@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <link rel="StyleSheet" href="./style.css">
     <script type="module" src="./app.bundle.js"></script>
-    <script src="./aframe.js"></script>
+    <script src="./aframe.bundle.js"></script>
     <!-- physics and other extras -->
+    <script>
+      THREE.Math = { //temp fix
+        degToRad: THREE.MathUtils.degToRad,
+        randInt: THREE.MathUtils.randInt,
+        randFloat: THREE.MathUtils.randFloat
+      };
+    </script>
     <script src="./aframe-extras.js"></script>
   </head>
   <body>

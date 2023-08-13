@@ -26385,7 +26385,11 @@ function addEntities(entityList, sceneElem) {
       if (excludeAttributeProperties.has(name)) {
         continue;
       }
-      elem.setAttribute(name, value);
+      if (name == "class") {
+        elem.className = value;
+      } else {
+        elem.setAttribute(name, value);
+      }
     }
     parentNode.appendChild(elem);
   }
@@ -26997,13 +27001,17 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
       });
     }
   }
+  damage(path, data) {
+    this._assertNonAnonymousUser("damage: non-anonymous logged in user required");
+    const url = this.createUrl(`damage/${path}`);
+    console.log("damage, sending request to:", url, data);
+    return this._apiRequest(url, "POST", data);
+  }
   updateEntity(path, data) {
-    if (!(this.connected && this.remoteUser)) {
-      console.info("User not logged in and/or client not connected");
-      return;
-    }
+    this._assertNonAnonymousUser("updateEntity: non-anonymous logged in user required");
     const url = this.createUrl(path);
-    return this._apiRequest(url, "PUT", data);
+    console.log("updateEntity, sending request to:", url, data);
+    return this._apiRequest(url, "POST", data);
   }
   _assertNonAnonymousUser(message) {
     let error;

@@ -81,7 +81,11 @@ function addEntities(entityList, sceneElem) {
       if (excludeAttributeProperties.has(name)) {
         continue;
       }
-      elem.setAttribute(name, value);
+      if (name == "class") {
+        elem.className = value;
+      } else {
+        elem.setAttribute(name, value);
+      }
     }
     parentNode.appendChild(elem);
   }
