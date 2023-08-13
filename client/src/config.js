@@ -8,13 +8,18 @@ switch (documentUrl.host) {
     break;
 }
 
-let firebaseConfig = {};
+let firebaseConfig;
 let firebaseEmulators;
 if (inEmulation) {
+  // in local emulation, we need the demo- prefix
+  const projectId = "demo-shieldsup-api-test";
   firebaseConfig = {
+    inEmulation,
     apiKey: "fake-api-key",
-    projectId: "demo-shieldsup-api-test",
-  }
+    projectId,
+    authEmulatorURL: "http://localhost:9099",
+    databaseURL: `http://localhost:9000/?ns=${projectId}`,
+  };
   console.log("inEmulation, firebaseConfig:", firebaseConfig);
   firebaseEmulators = {
     "auth": {

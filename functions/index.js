@@ -15,7 +15,7 @@ if (inEmulation) {
     functions.config().firebase,
   );
 } else {
-  const serviceAccount = require("../.secrets/shields-up-api-97f93f3bb5be.json");
+  const serviceAccount = require("./.service-key-shields-up-api.json");
   firebaseProjectConfig = Object.assign(
     {
       projectId: PROJECT_ID,

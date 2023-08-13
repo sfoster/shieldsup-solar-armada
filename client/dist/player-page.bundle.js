@@ -26650,13 +26650,18 @@ switch (documentUrl.host) {
     break;
 }
 
-let firebaseConfig = {};
+let firebaseConfig;
 let firebaseEmulators;
 if (inEmulation) {
+  // in local emulation, we need the demo- prefix
+  const projectId = "demo-shieldsup-api-test";
   firebaseConfig = {
+    inEmulation,
     apiKey: "fake-api-key",
-    projectId: "demo-shieldsup-api-test",
-  }
+    projectId,
+    authEmulatorURL: "http://localhost:9099",
+    databaseURL: `http://localhost:9000/?ns=${projectId}`,
+  };
   console.log("inEmulation, firebaseConfig:", firebaseConfig);
   firebaseEmulators = {
     "auth": {
@@ -26884,6 +26889,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var firebase_auth__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/auth */ "./node_modules/firebase/auth/dist/esm/index.esm.js");
 /* harmony import */ var _event_emitter__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./event-emitter */ "./src/event-emitter.js");
 /* harmony import */ var _collections__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./collections */ "./src/collections.js");
+/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./config */ "./src/config.js");
+
 
 
 
@@ -26931,7 +26938,9 @@ class GameClient extends (0,_event_emitter__WEBPACK_IMPORTED_MODULE_1__.EventEmi
   init(firebaseApp) {
     console.log("in _Client.init");
     this.auth = (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getAuth)(firebaseApp);
-    (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.connectAuthEmulator)(this.auth, "http://localhost:9099");
+    if (_config__WEBPACK_IMPORTED_MODULE_3__.firebaseConfig.inEmulation) {
+      (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.connectAuthEmulator)(this.auth, _config__WEBPACK_IMPORTED_MODULE_3__.firebaseConfig.authEmulatorURL);
+    }
     this.initializingPromise = new Promise((resolve, reject) => {
       (0,firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onAuthStateChanged)(this.auth, async (firebaseUser) => {
         try {
@@ -32720,7 +32729,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 const firebaseApp = (0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(_config__WEBPACK_IMPORTED_MODULE_6__.firebaseConfig);
-const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_8__.getDatabase)(firebaseApp, `http://localhost:9000/?ns=${_config__WEBPACK_IMPORTED_MODULE_6__.firebaseConfig.projectId}`);
+const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_8__.getDatabase)(firebaseApp, _config__WEBPACK_IMPORTED_MODULE_6__.firebaseConfig.databaseURL);
 (0,_collections__WEBPACK_IMPORTED_MODULE_0__.useDatabase)(db);
 
 if (_config__WEBPACK_IMPORTED_MODULE_6__.inEmulation) {

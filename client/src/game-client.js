@@ -1,6 +1,7 @@
 import { getAuth, signOut, signInAnonymously, signInWithEmailAndPassword, connectAuthEmulator, onAuthStateChanged } from "firebase/auth";
 import { EventEmitterMixin } from './event-emitter';
 import { RemoteObject } from "./collections";
+import { firebaseConfig } from "./config";
 
 // All the different kinds of users:
 // * The firebase auth user. Gives us uid, and user name but probably not the player/display name
@@ -45,7 +46,9 @@ export class GameClient extends EventEmitterMixin(Object) {
   init(firebaseApp) {
     console.log("in _Client.init");
     this.auth = getAuth(firebaseApp);
-    connectAuthEmulator(this.auth, "http://localhost:9099");
+    if (firebaseConfig.inEmulation) {
+      connectAuthEmulator(this.auth, firebaseConfig.authEmulatorURL);
+    }
     this.initializingPromise = new Promise((resolve, reject) => {
       onAuthStateChanged(this.auth, async (firebaseUser) => {
         try {

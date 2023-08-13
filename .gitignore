@@ -9,6 +9,7 @@ firebase-debug.*.log*
 
 # secrets
 .secrets
+functions/.service-key*
 
 # the webpack bundle files
 client/dist/app.bundle.js

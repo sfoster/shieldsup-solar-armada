@@ -25,7 +25,7 @@ window.uiScenes = scenes;
 console.log("scenes module:", scenes);
 
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp, `http://localhost:9000/?ns=${firebaseConfig.projectId}`);
+const db = getDatabase(firebaseApp, firebaseConfig.databaseURL);
 useDatabase(db);
 
 if (inEmulation) {
