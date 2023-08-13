@@ -59,6 +59,7 @@
         "e-1022422924740170": {
           "a-path": "#e-396104752858981 > #field1 > #e-1022422924740170",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-1022422924740170",
           "parentId": "field1",
@@ -71,6 +72,7 @@
         "e-10772873261950": {
           "a-path": "#e-396104752858981 > #field2 > #e-10772873261950",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-10772873261950",
           "parentId": "field2",
@@ -84,6 +86,7 @@
         "e-1093045612419009": {
           "a-path": "#e-396104752858981 > #field1 > #e-1093045612419009",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-1093045612419009",
           "parentId": "field1",
@@ -108,6 +111,7 @@
         "e-1140303303083931": {
           "a-path": "#e-396104752858981 > #field1 > #e-1140303303083931",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-1140303303083931",
           "parentId": "field1",
@@ -132,6 +136,7 @@
         "e-1618725678319496": {
           "a-path": "#e-396104752858981 > #field1 > #e-1618725678319496",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-1618725678319496",
           "parentId": "field1",
@@ -161,6 +166,7 @@
         "e-279724399453990": {
           "a-path": "#e-396104752858981 > #field2 > #e-279724399453990",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-279724399453990",
           "parentId": "field2",
@@ -184,6 +190,7 @@
         "e-357213482752215": {
           "a-path": "#e-396104752858981 > #e-357213482752215",
           "a-type": "gltf-model",
+          "durability": 300,
           "gltf-model": "",
           "id": "e-357213482752215",
           "material": "fog: false",
@@ -191,7 +198,8 @@
           "position": "10 10 -20",
           "rotation": "0 -150 0",
           "scale": "1 1 1",
-          "src": "#potcruiser"
+          "src": "#potcruiser",
+          "targetable": ""
         },
         "e-396104752858981": {
           "a-path": "#e-396104752858981",
@@ -201,6 +209,7 @@
         "e-430077276211518": {
           "a-path": "#e-396104752858981 > #field2 > #e-430077276211518",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-430077276211518",
           "parentId": "field2",
@@ -225,6 +234,7 @@
         "e-603155305642954": {
           "a-path": "#e-396104752858981 > #field2 > #e-603155305642954",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-603155305642954",
           "parentId": "field2",
@@ -248,6 +258,7 @@
         "e-727994085863472": {
           "a-path": "#e-396104752858981 > #field1 > #e-727994085863472",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-727994085863472",
           "parentId": "field1",
@@ -260,6 +271,7 @@
         "e-859971864746236": {
           "a-path": "#e-396104752858981 > #field2 > #e-859971864746236",
           "a-type": "gltf-model",
+          "durability": 100,
           "gltf-model": "",
           "id": "e-859971864746236",
           "parentId": "field2",

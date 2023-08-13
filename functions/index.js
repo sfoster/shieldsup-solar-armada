@@ -1,18 +1,30 @@
 const functions = require("firebase-functions");
+require("firebase-functions/logger/compat");
 const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
-let inEmulation = process.env.FUNCTIONS_EMULATOR && process.env.FUNCTIONS_EMULATOR == "true";
-//const serviceAccount = require("../.secrets/api-project-482814424574-de59b6e3ffb8.json");
-const PROJECT_ID = "demo-shieldsup-api-test";
-const firebaseProjectConfig = Object.assign(
-  {
-    projectId: PROJECT_ID,
-    // credential: admin.credential.cert(serviceAccount),
-    // The database URL depends on the location of the database
-    databaseURL: `http://localhost:9000/?ns=${PROJECT_ID}`
-  },
-  functions.config().firebase
-);
+const inEmulation = process.env.FUNCTIONS_EMULATOR && process.env.FUNCTIONS_EMULATOR == "true";
+const PROJECT_ID = inEmulation ? "demo-shieldsup-api-test" : "shieldsup-api-test";
+let firebaseProjectConfig;
+if (inEmulation) {
+  firebaseProjectConfig = Object.assign(
+    {
+      projectId: PROJECT_ID,
+      // The database URL depends on the location of the database
+      databaseURL: `http://localhost:9000/?ns=${PROJECT_ID}`,
+    },
+    functions.config().firebase,
+  );
+} else {
+  const serviceAccount = require("../.secrets/shields-up-api-97f93f3bb5be.json");
+  firebaseProjectConfig = Object.assign(
+    {
+      projectId: PROJECT_ID,
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: "https://shieldsup-api-test-default-rtdb.firebaseio.com/",
+    },
+    functions.config().firebase,
+  );
+}
 
 const express = require("express");
 // Initialize the app with a service account, granting admin privileges
@@ -22,7 +34,7 @@ const app = express();
 
 function promiseSnapshot(pathOrRef) {
   const ref = typeof pathOrRef == "string" ? db.ref(pathOrRef) : pathOrRef;
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     ref.once("value", (snapshot) => {
       resolve(snapshot);
     });
@@ -52,13 +64,13 @@ function documentRefChange(ref, method, theData) {
 function checkAuth(req, resp, next) {
   // NB: ID token verification requires a project ID.
   // https://firebase.google.com/docs/auth/admin/verify-id-tokens
-  let credential = req.headers.authorization ?? req.body?.credential;
+  const credential = req.headers.authorization ?? req.body?.credential;
   let idToken;
   if (credential) {
-    let nameValue = credential.split(/;\s*/).find(part => part.startsWith("token="));
-    const [_,token] = (nameValue || "").split("=");
+    const nameValue = credential.split(/;\s*/).find((part) => part.startsWith("token="));
+    const [, token] = (nameValue || "").split("=");
     idToken = token;
-  } else if(req.params.token) {
+  } else if (req.params.token) {
     idToken = req.params.token;
   }
   if (!idToken) {
@@ -73,7 +85,7 @@ function checkAuth(req, resp, next) {
       console.log("idToken verified, uid:", app.locals.uid);
       next();
     })
-    .catch(error => {
+    .catch((error) => {
       console.warn("error verifying token:", error);
       resp.status(401).json({ "status": "token-revoked", "ok": false });
     });
@@ -99,40 +111,40 @@ app.use(express.json());
 app.use("/api", checkAuth);
 
 app.get("/api", (req, resp) => {
-  resp.json({ "status": "ok", ok: true });
+  resp.json({ "status": "ok", "ok": true });
 });
 
 app.get(
   "/api/hello", (req, resp) => {
-    resp.json({ message: "Hi", "status": "ok", ok: true });
-  }
+    resp.json({ "message": "Hi", "status": "ok", "ok": true });
+  },
 );
 
 app.get(
   "/api/games/:id",
   async (req, resp) => {
     const payload = {};
-    for (let collName of ["games", "users"]) {
+    for (const collName of ["games", "users"]) {
       const results = await promiseSnapshot(collName).val();
       payload[collName] = results;
     }
     resp.json(payload);
-  }
+  },
 );
 
 app.all(
   ["/api/unauthorized", "/api/unauthorized/*"],
   async (req, resp) => {
-    resp.status(401).json({ "status": "unauthorized", ok: false });
-  }
-)
+    resp.status(401).json({ "status": "unauthorized", "ok": false });
+  },
+);
 
 app.all(
   ["/api/forbidden", "/api/forbidden/*"],
   async (req, resp) => {
-    resp.status(403).json({ "status": "denied", ok: false });
-  }
-)
+    resp.status(403).json({ "status": "denied", "ok": false });
+  },
+);
 
 app.post("/api/usercheck", async (req, resp) => {
   // if the auth middleware lets us get this far, all is good
@@ -152,7 +164,7 @@ app.post("/api/joinserver", async (req, resp) => {
     const lastSeen = Date.now();
     console.log("Handling joinserver, updating player doc with:", req.body.data);
     playerRef.set(Object.assign({
-      lastSeen
+      lastSeen,
     }, req.body.data));
   } catch (ex) {
     success = false;
@@ -165,16 +177,15 @@ app.post("/api/joinserver", async (req, resp) => {
     });
   } else {
     console.log("Returning error 512 because: ", message);
-    resp.status(512).json({ "status": "nope", ok: false });
+    resp.status(512).json({ "status": "nope", "ok": false });
   }
 });
 
 app.post("/api/joingame/:gameId", async (req, resp) => {
   // attach the user to this game
   console.log("handling request to join game:", req.params.gameId);
-  let success = true;
   let gameData;
-  let gameId = req.params.gameId;
+  const gameId = req.params.gameId;
   const uid = app.locals.uid;
   const playerRef = db.ref(`players/${uid}`);
   const gameRef = db.ref(`games/${gameId}`);
@@ -188,8 +199,8 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
         displayName: "",
         players: {},
         created: Date.now(),
-        complete: false
-      }, (error => {
+        complete: false,
+      }, ((error) => {
         if (error) reject(error);
         else resolve(true);
       }));
@@ -197,9 +208,12 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
     try {
       await createdPromise;
       snapshot = await promiseSnapshot(gameRef);
-    }
-    catch (ex) {
-      resp.status(512).json({ "status": "nope", ok: false, message: `Failed to create "games/${gameId}"` });
+    } catch (ex) {
+      resp.status(512).json({
+        "status": "nope",
+        "ok": false,
+        "message": `Failed to create "games/${gameId}"`,
+      });
       return;
     }
   }
@@ -219,36 +233,33 @@ app.post("/api/joingame/:gameId", async (req, resp) => {
     gameRef.child("players").update({
       [uid]: Object.assign({}, req.body.data, { uid, joined: Date.now() }),
     });
-    console.log(`transaction done`);
+    console.log("transaction done");
   }).then(() => {
-    console.log(`transaction promise resolved, responding with status:ok`);
+    console.log("transaction promise resolved, responding with status:ok");
     resp.json({
       status: "ok",
       ok: true,
       message: `player ${uid} added to game ${gameId}`,
     });
-  }).catch(ex => {
-    console.log(`transaction promise rejected, responding with 512`);
-    resp.status(512).json({ "status": "nope", ok: false });
-  })
+  }).catch((ex) => {
+    console.log("transaction promise rejected, responding with 512");
+    resp.status(512).json({ "status": "nope", "ok": false });
+  });
 });
 
 app.post("/api/leavegame", async (req, resp) => {
   // dettach the user from their current game
   console.log("handling request to leave game");
   const uid = app.locals.uid;
-  let gameData;
-  let playerRef = db.ref(`players/${uid}`);
-  let playerSnapshot = await promiseSnapshot(playerRef);
-  let { gameId } = playerSnapshot.val();
+  const playerRef = db.ref(`players/${uid}`);
+  const playerSnapshot = await promiseSnapshot(playerRef);
+  const { gameId } = playerSnapshot.val();
   if (!gameId) {
-    resp.status(512).json({ "status": "nope", ok: false });
+    resp.status(512).json({ "status": "nope", "ok": false });
     return;
   }
   const gameRef = db.ref(`games/${gameId}`);
-  let snapshot = await promiseSnapshot(gameRef);
   gameRef.transaction(() => {
-    gameData = snapshot.val();
     // remove the player from the game
     gameRef.child(`players/${uid}`).remove();
     // remove the game from the player
@@ -257,11 +268,11 @@ app.post("/api/leavegame", async (req, resp) => {
     resp.json({
       status: "ok",
       ok: true,
-      message: `player {uid} removed from game {gameId}`,
+      message: "player {uid} removed from game {gameId}",
     });
-  }).catch(ex => {
-    resp.status(512).json({ "status": "nope", ok: false });
-  })
+  }).catch((ex) => {
+    resp.status(512).json({ "status": "nope", "ok": false });
+  });
 });
 
 // check any update against some game logic
@@ -282,7 +293,7 @@ app.put("/api/games/:id", checkProposedChange, async (req, resp) => {
   console.log("update sent, result:", result);
   resp.json({
     status: result,
-    ok
+    ok,
   });
 });
 
@@ -291,39 +302,41 @@ app.post("/api/damage/scenes/:sceneId/entities/:id", checkProposedChange, async 
     return;
   }
   console.log(`Update entity ${req.params.id}, in scene: ${req.params.sceneId}`, req.body);
-  let result = "Alright";
-  let ok = true;
-  let entityPath = `scenes/${req.params.sceneId}/entities/${req.params.id}`;
+  const entityPath = `scenes/${req.params.sceneId}/entities/${req.params.id}`;
   let entityData;
   const entityRef = db.ref(entityPath);
-  let snapshot = await promiseSnapshot(entityRef);
+  const snapshot = await promiseSnapshot(entityRef);
 
   if (!snapshot.exists()) {
-      console.log("Path doesnt exist:", entityPath);
-      resp.status(404).json({ "status": "nope", ok: false, message: `No such entity at "${entityPath}"` });
-      return;
+    console.log("Path doesnt exist:", entityPath);
+    resp.status(404).json({
+      "status": "nope",
+      "ok": false,
+      "message": `No such entity at "${entityPath}"`,
+    });
+    return;
   }
 
   entityRef.transaction(() => {
     entityData = snapshot.val();
     console.log("damage entity, entityData:", entityData);
-    let damage = req.body.data.durability;
+    const damage = req.body.data.durability;
     let currentDurability = entityData.durability || 0;
-    let newDurability = Math.max(0, currentDurability += damage);
+    const newDurability = Math.max(0, currentDurability += damage);
 
     entityData.durability = newDurability;
     entityRef.update(entityData);
-    console.log(`transaction done, added damage: ${damage}, typeof: ${typeof damage}, result: ${entityData.durability}`);
+    console.log(`transaction done, added damage: ${damage}, result: ${entityData.durability}`);
   }).then(() => {
-    console.log(`transaction promise resolved, responding with status:ok`);
+    console.log("transaction promise resolved, responding with status:ok");
     resp.json({
       status: "ok",
       ok: true,
       message: `entity at  ${entityPath} updated to durability: ${entityData.durability}`,
     });
-  }).catch(ex => {
-    console.log(`transaction promise rejected, responding with 512`, ex);
-    resp.status(512).json({ "status": "nope", ok: false });
+  }).catch((ex) => {
+    console.log("transaction promise rejected, responding with 512", ex);
+    resp.status(512).json({ "status": "nope", "ok": false });
   });
 });
 
@@ -334,12 +347,12 @@ app.post("/api/import/:sceneId", async (req, resp) => {
   const sceneRef = db.ref(`scenes/${req.params.sceneId}`);
   const entitiesRef = sceneRef.child("entities");
   const assetsRef = sceneRef.child("assets");
-  let entitiesData = {};
-  let assetsData = {};
-  for (let entity of req.body.data?.entities || []) {
+  const entitiesData = {};
+  const assetsData = {};
+  for (const entity of req.body.data?.entities || []) {
     entitiesData[entity.id] = entity;
   }
-  for (let asset of req.body.data?.assets || []) {
+  for (const asset of req.body.data?.assets || []) {
     assetsData[asset.id] = asset;
   }
   assetsRef.set(assetsData);
@@ -349,7 +362,6 @@ app.post("/api/import/:sceneId", async (req, resp) => {
     status: "imported",
     ok: true,
   });
-
 });
 
 exports.webApi = functions.https.onRequest(app);

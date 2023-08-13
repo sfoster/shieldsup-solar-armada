@@ -26668,6 +26668,17 @@ if (inEmulation) {
       "port": 9000
     }
   };
+} else {
+  // the config from firebase hosting -> app SDK configuration
+  firebaseConfig = {
+    apiKey: "AIzaSyBMXvHUDiqjpmLfznl-gu8iRPYafQW8eC8",
+    authDomain: "shieldsup-api-test.firebaseapp.com",
+    databaseURL: "https://shieldsup-api-test-default-rtdb.firebaseio.com",
+    projectId: "shieldsup-api-test",
+    storageBucket: "shieldsup-api-test.appspot.com",
+    messagingSenderId: "593268412435",
+    appId: "1:593268412435:web:a9bee5075c04355ce1efe6"
+  };
 }
 
 

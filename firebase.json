@@ -20,10 +20,6 @@
         "destination": "/index.html"
       },
       {
-        "source": "**/apiTest.html",
-        "destination": "/apiTest.html"
-      },
-      {
         "source": "/api/**",
         "function": "webApi"
       }
