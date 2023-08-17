@@ -16,19 +16,15 @@ if (inEmulation) {
   );
 } else {
   const serviceAccount = require("./.service-key-shields-up-api.json");
-  firebaseProjectConfig = Object.assign(
-    {
-      projectId: PROJECT_ID,
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: "https://shieldsup-api-test-default-rtdb.firebaseio.com/",
-    },
-    functions.config().firebase,
-  );
+  firebaseProjectConfig = {
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: `https://${PROJECT_ID}-default-rtdb.firebaseio.com/`,
+  };
 }
 
 const express = require("express");
 // Initialize the app with a service account, granting admin privileges
-admin.initializeApp(firebaseProjectConfig);
+const sdkApp = admin.initializeApp(firebaseProjectConfig);
 const db = admin.database();
 const app = express();
 
@@ -158,6 +154,7 @@ app.post("/api/usercheck", async (req, resp) => {
 app.post("/api/joinserver", async (req, resp) => {
   let success = true;
   let message = "";
+  console.log("Handling request to /api/joinserver, app name:", sdkApp.name, sdkApp.options);
   try {
     // create a new server user object, using the auth'd uid
     const playerRef = db.ref(`players/${app.locals.uid}`);
@@ -182,10 +179,18 @@ app.post("/api/joinserver", async (req, resp) => {
 });
 
 app.post("/api/joingame/:gameId", async (req, resp) => {
-  // attach the user to this game
-  console.log("handling request to join game:", req.params.gameId);
-  let gameData;
   const gameId = req.params.gameId;
+  if (!gameId) {
+    resp.status(400).json({
+      "status": "nope",
+      "ok": false,
+      "message": "Missing gameId in request to joingame",
+    });
+    return;
+  }
+  // attach the user to this game
+  console.log("handling request to join game:", gameId);
+  let gameData;
   const uid = app.locals.uid;
   const playerRef = db.ref(`players/${uid}`);
   const gameRef = db.ref(`games/${gameId}`);
